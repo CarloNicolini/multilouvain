@@ -7,4 +7,15 @@ To compile the code:
     cmake -DMATLAB_SUPPORT=True ..
     make
 
-This will make the multilouvain.mex64 mex file that you can use as wrapper to run the Louvain algorithm on square adjacency matrices.
+This will make the `multilouvain.mex64` mex file that you can use as wrapper to run the Louvain algorithm on square adjacency matrices.
+
+You can also compile the code for Octave, but first because of some incompatibilities between Octave and Matlab mex files, you have to clean the repo:
+
+    git clean -df .
+    mkdir build
+    cmake -DOCTAVE_SUPPORT=True ..
+    make
+
+This will make the `multilouvain.mex` file to be used within Octave. To compile it you need the following packages
+
+    sudo apt-get install liboctave-dev
