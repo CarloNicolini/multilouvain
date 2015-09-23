@@ -2,11 +2,11 @@
 #define MUTABLEVERTEXPARTITION_H
 
 #include <string>
-#include "GraphHelper.h"
 #include <map>
 #include <set>
 #include <utility>
 #include <algorithm>
+#include "GraphHelper.h"
 
 using std::string;
 using std::map;

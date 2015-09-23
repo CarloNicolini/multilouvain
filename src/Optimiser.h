@@ -1,5 +1,6 @@
 #ifndef OPTIMISER_H
 #define OPTIMISER_H
+
 #include "GraphHelper.h"
 #include "MutableVertexPartition.h"
 #include <algorithm>

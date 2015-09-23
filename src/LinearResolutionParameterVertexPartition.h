@@ -1,7 +1,7 @@
 #ifndef LINEARRESOLUTIONPARAMETERVERTEXPARTITION_H
 #define LINEARRESOLUTIONPARAMETERVERTEXPARTITION_H
 
-#include <MutableVertexPartition.h>
+#include "MutableVertexPartition.h"
 
 class LinearResolutionParameterVertexPartition : public MutableVertexPartition
 {
