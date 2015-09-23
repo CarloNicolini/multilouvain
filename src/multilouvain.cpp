@@ -40,10 +40,12 @@
 
 #include "igraph_utils.h"
 
-#ifdef MATLAB_SUPPORT
-#include "/usr/local/MATLAB/R2015a/extern/include/mex.h"
-#elif OCTAVE_SUPPORT
-#include "/usr/include/octave-4.0.0/octave/mex.h"
+#ifdef __linux__
+    #include <mex.h>
+#endif
+
+#ifdef __APPLE__
+#include "mex.h"
 #endif
 
 using namespace std;
