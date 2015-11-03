@@ -24,6 +24,7 @@
 
 #include <iostream>
 #include <string.h>
+#include <cmath>
 #include <sstream>
 #include <igraph.h>
 #include <sys/time.h>
@@ -290,8 +291,11 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
         struct timeval start;
         gettimeofday(&start, NULL);
         std::srand(start.tv_usec);
-#else
-#assert("ERROR")
+#endif
+#ifdef __apple__
+        struct timeval start;
+        gettimeofday(&start, NULL);
+        std::srand(start.tv_usec);
 #endif
     }
     else
