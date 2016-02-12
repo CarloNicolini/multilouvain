@@ -141,5 +141,19 @@ double KLModularityVertexPartition::quality()
     cerr << "exit KLModularityVertexPartition::quality()" << endl;
     cerr << "return " << S << endl << endl;
 #endif
+
+    // COMPUTE MODULARITY
+    double mod = 0.0;
+    for (size_t c = 0; c < this->nb_communities(); c++)
+    {
+        double w = this->total_weight_in_comm(c);
+        double w_out = this->total_weight_from_comm(c);
+        double w_in = this->total_weight_to_comm(c);
+        #ifdef DEBUG
+                size_t csize = this->csize(c);
+                cerr << "\t" << "Comm: " << c << ", size=" << csize << ", w=" << w << ", w_out=" << w_out << ", w_in=" << w_in << "." << endl;
+        #endif
+        mod += w - w_out*w_in/((this->graph->is_directed() ? 1.0 : 4.0)*this->graph->total_weight());
+    }
     return S;
 }
