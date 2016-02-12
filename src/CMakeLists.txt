@@ -11,6 +11,7 @@ Optimiser.cpp
 RBConfigurationVertexPartition.cpp
 RBERVertexPartition.cpp
 SignificanceVertexPartition.cpp
+KLModularityVertexPartition.cpp
 SurpriseVertexPartition.cpp
 igraph_utils.cpp
 )
@@ -25,6 +26,7 @@ Optimiser.h
 RBConfigurationVertexPartition.h
 RBERVertexPartition.h
 SignificanceVertexPartition.h
+KLModularityVertexPartition.h
 SurpriseVertexPartition.h
 igraph_utils.h
 )
