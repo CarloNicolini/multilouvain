@@ -38,7 +38,7 @@
 #include "RBERVertexPartition.h"
 #include "CPMVertexPartition.h"
 #include "ModularityVertexPartition.h"
-
+#include "KLModularityVertexPartition.h"
 #include "igraph_utils.h"
 
 #ifdef __linux__
@@ -59,7 +59,8 @@ enum LouvainMethod
     MethodRBER = 2,
     MethodRBConfiguration = 3,
     MethodCPM = 4 ,
-    MethodModularity = 5
+    MethodModularity = 5,
+    MethodKLModularity = 6
 };
 
 
@@ -190,7 +191,7 @@ error_type parse_args(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, co
             if ( strcasecmp(cpartype,"Method")==0 )
             {
                 pars->method = static_cast<LouvainMethod>(*mxGetPr(parval));
-                if (pars->method<0 || pars->method>5)
+                if (pars->method<0 || pars->method>MethodKLModularity)
                 {
                     *argposerr = argcount+1;
                     return ERROR_ARG_VALUE;
@@ -368,9 +369,9 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
         partition = new CPMVertexPartition(G,pars.cpmgamma);
         break;
     }
-    case MethodModularity:
+    case MethodKLModularity:
     {
-        partition = new ModularityVertexPartition(G);
+        partition = new KLModularityVertexPartition(G);
         break;
     }
     }
@@ -382,7 +383,7 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
     opt->eps = pars.eps;
 
     // Finally optimize the partition
-    opt->optimize_partition(partition);
+    double qual = opt->optimize_partition(partition);
 #ifdef _DEBUG
     mexPrintf("G=(V,E)=%d %d\n",G->vcount(),G->ecount());
     mexPrintf("|C|=%d Qual=%g\n",partition->nb_communities(),partition->quality());
@@ -397,7 +398,7 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
     // Copy the value of partition quality
     outputArgs[1] = mxCreateDoubleMatrix(1,1,mxREAL);
     double *q = mxGetPr(outputArgs[1]);
-    q[0] = partition->quality();
+    q[0] = qual;
 
 #ifdef _DEBUG
     size_t n = partition->graph->total_size();
