@@ -96,13 +96,13 @@ double KLModularityVertexPartition::diff_move(size_t v, size_t new_comm)
         double wfc = this->weight_from_comm(v, old_comm) - sw;
 
         double m_oldx = m_old - wtc/normalise - wfc/normalise - sw;
-        double q_oldx = m_oldx;
+        double q_oldx = m_oldx/m;
         double K_oldx = K_old - k;
         double p_oldx = (K_oldx*K_oldx)/(4*m*m);
 
         // New comm
         double m_new = this->total_weight_in_comm(new_comm);
-        double q_new = m_new;
+        double q_new = m_new/m;
         double K_new = this->total_weight_from_comm(new_comm);
         double p_new = (K_new*K_new)/(4*m*m);
 
@@ -112,15 +112,15 @@ double KLModularityVertexPartition::diff_move(size_t v, size_t new_comm)
         sw = this->graph->node_self_weight(v);
 
         double m_newx = m_new + wtc/normalise + wfc/normalise + sw;
-        double q_newx = m_newx;
+        double q_newx = m_newx/m;
         double K_newx = K_new + k;
         double p_newx = (K_newx*K_newx)/(4*m*m);
 
         double d1,d2,d3,d4;
         d1 = KL(q_old, p_old);
         d2 = KL(q_oldx, p_oldx);
-        d3 = KL(q_new, q_new);
-        d4 = KL(q_newx, q_newx);
+        d3 = KL(q_new, p_new);
+        d4 = KL(q_newx, p_newx);
 
         // Calculate actual diff
         diff = - KL(q_old, p_old)
