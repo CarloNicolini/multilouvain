@@ -137,6 +137,13 @@ Graph::Graph(igraph_t* graph, vector<double> edge_weights)
     this->set_default_node_size();
     this->init_admin();
     this->set_self_weights();
+/*
+    igraph_adjlist_t adjlist;
+    igraph_neimode_t mode = IGRAPH_TOTAL;
+    igraph_adjlist_init(_graph,&adjlist,mode);
+    igraph_adjlist_print(&adjlist);
+    igraph_adjlist_destroy(&adjlist);
+*/
 }
 
 Graph::Graph(igraph_t* graph, int correct_self_loops)

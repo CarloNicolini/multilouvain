@@ -41,5 +41,6 @@ find_package(IGraph)
 include_directories(${IGRAPH_INCLUDES})
 add_definitions("-DIGRAPH_SUPPORT")
 
+include_directories("../paco/src/eigen")
 # Add the subdirectory with the source code
 add_subdirectory(src)
