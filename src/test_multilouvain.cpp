@@ -95,11 +95,11 @@ int main(int argc, char *argv[])
 
     partition = new KLModularityVertexPartition(G,memb);
 
-    cerr << "QA=" << partition->quality() << endl;
-    cerr << partition->diff_move(3,0) << endl;
+    double Qold = partition->quality();
+    double delta = partition->diff_move(3,0);
     partition->move_node(3,0);
-    cerr << "QA=" << partition->quality() << endl;
-
+    double Qnew = partition->quality();
+    cerr << "Qnew-qold" << delta << " " << Qnew-Qold << endl;
     delete partition;
     delete G;
     return 0;

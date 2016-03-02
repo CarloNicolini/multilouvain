@@ -117,16 +117,25 @@ double KLModularityVertexPartition::diff_move(size_t v, size_t new_comm)
         double p_newx = (K_newx*K_newx)/(4*m*m);
 
         double d1,d2,d3,d4;
+
+        // When using KL modularity (SEEMS CORRECT)
         d1 = KL(q_old, p_old);
         d2 = KL(q_oldx, p_oldx);
         d3 = KL(q_new, p_new);
         d4 = KL(q_newx, p_newx);
 
+        // When using standard modularity (WORKING FINE)
+/*
+        d1 = (q_old - p_old);
+        d2 = (q_oldx - p_oldx);
+        d3 = (q_new - p_new);
+        d4 = (q_newx - p_newx);
+*/
         // Calculate actual diff
-        diff = - KL(q_old, p_old)
-               + KL(q_oldx, p_oldx)
-               - KL(q_new, p_new)
-               + KL(q_newx, p_newx);
+        diff = - d1
+               + d2
+               - d3
+               + d4;
     }
 
     return diff;
@@ -145,9 +154,9 @@ double KLModularityVertexPartition::quality()
         double w_out = this->total_weight_from_comm(c);
         double w_in = this->total_weight_to_comm(c);
         double configurationProb = w_out*w_in/pow((this->graph->is_directed() ? 1.0 : 2.0)*this->graph->total_weight(),2);
-        cerr << "Comm=" << c << " w_in=" << w << " Kc^2/4m^2=" << configurationProb << endl;
+        //cerr << "Comm=" << c << " w_in=" << w << " Kc^2/4m^2=" << configurationProb << endl;
         mod +=  KL(w/m , configurationProb);
     }
-    cerr << "mod=" << mod << endl;
+    //cerr << "mod=" << mod << endl;
     return mod;
 }

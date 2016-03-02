@@ -369,6 +369,11 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
         partition = new CPMVertexPartition(G,pars.cpmgamma);
         break;
     }
+    case MethodModularity:
+    {
+        partition = new ModularityVertexPartition(G);
+        break;
+    }
     case MethodKLModularity:
     {
         partition = new KLModularityVertexPartition(G);
