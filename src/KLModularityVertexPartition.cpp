@@ -24,54 +24,6 @@ KLModularityVertexPartition::~KLModularityVertexPartition()
 
 double KLModularityVertexPartition::diff_move(size_t v, size_t new_comm)
 {
-    /*
-    cerr << "double KLModularityVertexPartition::diff_move(" << v << ", " << new_comm << ")" << endl;
-    size_t old_comm = this->_membership[v];
-    double diff = 0.0;
-    double m = this->graph->total_weight();
-
-    if (new_comm != old_comm)
-    {
-        double w_to_old = this->weight_to_comm(v, old_comm);
-        cerr << "\t" << "w_to_old: " << w_to_old << endl;
-
-        double w_to_new = this->weight_to_comm(v, new_comm);
-        cerr << "\t" << "w_to_new: " << w_to_new << endl;
-
-        double k = this->graph->strength(v, IGRAPH_OUT);
-        cerr << "\t" << "k: " << k << endl;
-
-        double self_weight = this->graph->node_self_weight(v);
-        cerr << "\t" << "self_weight: " << self_weight << endl;
-
-        double K_old = this->total_weight_from_comm(old_comm);
-        cerr << "\t" << "K_old: " << K_old << endl;
-
-        double K_new = this->total_weight_from_comm(new_comm) + k;
-        cerr << "\t" << "K_new: " << K_new << endl;
-        cerr << "\t" << "total_weight: " << m << endl;
-
-        double diff_old = (w_to_old - k*K_old/(2*m)) + (w_to_old - k*K_old/(2*m));
-
-        double diff_new = (w_to_new + self_weight - k*K_new/(2*m)) + (w_to_new + self_weight - k*K_new/(2*m));
-
-        double Qold = 2*(this->total_weight_in_comm(old_comm)/m - pow(total_weight_from_comm(old_comm)/(2*m),2));
-        double Qnew = 2*((this->total_weight_in_comm(new_comm)+)/m - pow((total_weight_from_comm(new_comm)-)/(2*m),2));
-
-        cerr << Qnew << " " << Qold << endl;
-        //cerr << "Q0=" << this->total_weight_in_comm(old_comm) << " " << total_weight_from_comm(old_comm) << endl;
-        //cerr << "Q1=" << this->total_weight_in_comm(new_comm) << " " << total_weight_from_comm(new_comm) << endl;
-
-        diff = (diff_new - diff_old);
-    }
-
-    cerr << "exit double KLModularityVertexPartition::diff_move(" << v << ", " << new_comm << ")" << endl;
-    cerr << "return " << diff << endl << endl;
-    return diff;
-    */
-#ifdef DEBUG
-    cerr << "virtual double SignificanceVertexPartition::diff_move(" << v << ", " << new_comm << ")" << endl;
-#endif
     size_t old_comm = this->membership(v);
     double m = graph->total_weight();
     double diff = 0.0;
@@ -154,7 +106,7 @@ double KLModularityVertexPartition::quality()
         double w_out = this->total_weight_from_comm(c);
         double w_in = this->total_weight_to_comm(c);
         double configurationProb = w_out*w_in/pow((this->graph->is_directed() ? 1.0 : 2.0)*this->graph->total_weight(),2);
-        //cerr << "Comm=" << c << " w_in=" << w << " Kc^2/4m^2=" << configurationProb << endl;
+        cerr << "Comm=" << c << " w_in=" << w/m << " Kc^2/4m^2=" << configurationProb << endl;
         mod +=  KL(w/m , configurationProb);
     }
     //cerr << "mod=" << mod << endl;

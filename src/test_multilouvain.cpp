@@ -98,8 +98,17 @@ int main(int argc, char *argv[])
     double Qold = partition->quality();
     double delta = partition->diff_move(3,0);
     partition->move_node(3,0);
+    cerr << "===========" << endl;
     double Qnew = partition->quality();
-    cerr << "Qnew-qold" << delta << " " << Qnew-Qold << endl;
+    cerr << "Delta=" << delta << " Qnew-qold=" << Qnew-Qold << endl;
+
+    Qold = partition->quality();
+    delta = partition->diff_move(4,0);
+    partition->move_node(4,0);
+    cerr << "===========" << endl;
+    Qnew = partition->quality();
+    cerr << "Delta=" << delta << " Qnew-qold=" << Qnew-Qold << endl;
+
     delete partition;
     delete G;
     return 0;
