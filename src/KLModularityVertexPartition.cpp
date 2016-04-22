@@ -1,5 +1,6 @@
-#include "KLModularityVertexPartition.h"
 #include <iostream>
+#include <stdexcept>
+#include "KLModularityVertexPartition.h"
 using std::cerr;
 using std::endl;
 
@@ -106,7 +107,7 @@ double KLModularityVertexPartition::quality()
         double w_out = this->total_weight_from_comm(c);
         double w_in = this->total_weight_to_comm(c);
         double configurationProb = w_out*w_in/pow((this->graph->is_directed() ? 1.0 : 2.0)*this->graph->total_weight(),2);
-        cerr << "Comm=" << c << " w_in=" << w/m << " Kc^2/4m^2=" << configurationProb << endl;
+        //cerr << "Comm=" << c << " w_in=" << w << " Kc^2/4m^2=" << configurationProb << endl;
         mod +=  KL(w/m , configurationProb);
     }
     //cerr << "mod=" << mod << endl;
