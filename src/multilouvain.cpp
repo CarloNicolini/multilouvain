@@ -38,11 +38,12 @@
 #include "RBERVertexPartition.h"
 #include "CPMVertexPartition.h"
 #include "ModularityVertexPartition.h"
-#include "KLModularityVertexPartition.h"
 #include "igraph_utils.h"
 
+#include <Eigen/Core>
+
 #ifdef __linux__
-    #include <mex.h>
+#include <mex.h>
 #endif
 
 #ifdef __APPLE__
@@ -60,48 +61,48 @@ enum LouvainMethod
     MethodRBConfiguration = 3,
     MethodCPM = 4 ,
     MethodModularity = 5,
-    MethodKLModularity = 6
 };
 
 
 void printUsage()
 {
     mexPrintf("LOUVAIN Louvain Algorithm for community detection.\n");
-    mexPrintf("[membership, qual] =louvain(W);\n");
+    mexPrintf("Version 0.1 19 January 2017\n");
+    mexPrintf("[membership, qual] = multilouvain(W);\n");
     mexPrintf("Input:\n");
-    mexPrintf("	W: an undirected weighted network with positive edge weights. Negative edge weights are not seen as edges and therefore discarded. Remember to use real matrices, logical matrices throw error.\n");
+    mexPrintf("	W: an undirected weighted network with positive edge weights. Negative edge weights are not supported and an error is thrown. Remember to use real matrices, logical matrices throw error.\n");
     mexPrintf("Output:\n");
     mexPrintf("	membership: the membership vector that represents the community which every vertex belongs to after quality optimization.\n");
     mexPrintf("	qual: the current quality of the partition.\n");
     mexPrintf("\n");
     mexPrintf("Options:\n");
-    mexPrintf("louvain accepts additional arguments to control the optimization process\n");
-    mexPrintf("[m, qual] = louvain(W,'method',val);\n");
-    mexPrintf("	val is one of the following integers: {1,2,3,4,5}:\n");
-    mexPrintf("		0: Surprise\n");
+    mexPrintf("multilouvain accepts additional arguments to control the optimization process\n");
+    mexPrintf("[m, qual] = multilouvain(W,'quality',val);\n");
+    mexPrintf("	val is one of the following integers: {0,1,2,3,4,5}:\n");
+    mexPrintf("		0: Asymptotical Surprise\n");
     mexPrintf("		1: Significance\n");
     mexPrintf("		2: Reichardt-Bornholdt with Erdos-Renyi null model\n");
     mexPrintf("		3: Reichardt-Bornholdt with configuration model null model\n");
     mexPrintf("		4: Constant Potts Model (gamma=0.5), to specify as further argument.\n");
     mexPrintf("		5: Newman's modularity\n");
-    mexPrintf("[m, qual] = louvain(W,'consider_comms',val);\n");
+    mexPrintf("[m, qual] = multilouvain(W,'consider_comms',val);\n");
     mexPrintf("	consider_comms is one of the following integers: {1,2,3,4}:\n");
     mexPrintf("		1: ALL_COMMS. Looks for improvements in all communities. Slower but better results.\n");
     mexPrintf("		2: ALL_NEIGH_COMMS Looks for improvements just in neighboring communities. Faster and still good results.\n");
     mexPrintf("		2: RAND_COMMS Choose a random communitiy to look for improvements.\n");
     mexPrintf("		3: RAND_NEIGH_COMMS Choose a random neighbor community. Fastest option but poor results.\n");
-    mexPrintf("[m, qual] = louvain(W,'cpm_gamma',val);\n");
+    mexPrintf("[m, qual] = multilouvain(W,'cpm_gamma',val);\n");
     mexPrintf("		val: is the resolution parameter for CPM method.\n");
-    mexPrintf("[m, qual] = louvain(W,'max_itr',val);\n");
+    mexPrintf("[m, qual] = multilouvain(W,'max_itr',val);\n");
     mexPrintf("		val: is the maximum number of iterations of Louvain algorithm. Default 100000.\n");
-    mexPrintf("[m, qual] = louvain(W,'random_order',val);\n");
+    mexPrintf("[m, qual] = multilouvain(W,'random_order',val);\n");
     mexPrintf("		val: whether to consider nodes in random order or not. Default true.\n");
-    mexPrintf("[m, qual] = louvain(W,'seed',val);\n");
+    mexPrintf("[m, qual] = multilouvain(W,'seed',val);\n");
     mexPrintf("		val: to provide a specific random seed to the algorithm, in order to have reproducible results.\n");
     mexPrintf("\n\n");
     mexPrintf("Example:\n");
     mexPrintf(">> A=rand(100,100); A=(A+A')/2; A=A.*(A>0.5);\n");
-    mexPrintf(">> [memb, qual] = louvain(A,'method',2,'consider_comms',2);\n");
+    mexPrintf(">> [memb, qual] = multilouvain(A,'method',2,'consider_comms',2);\n");
 }
 
 
@@ -124,14 +125,15 @@ static const char *error_strings[] =
     "Not enough input arguments.",
     "Non valid argument value.",
     "Non valid argument type.",
-    "Non valid input adjacency matrix. Must be symmetric real square matrix.",
+    "Non valid input adjacency matrix. MULTILOUVAIN accepts symmetric real dense-type (n x n) matrices or sparse edges-list representation \
+    [num_edges x 3] array of edges list with edge endpoints and weight.",
     "Expected some argument value but empty found.",
     "Unkwown argument."
 };
 
 struct LouvainParams
 {
-    LouvainMethod method;
+    LouvainMethod quality;
     int consider_comms;  // Indicates how communities will be considered for improvement. Should be one of the parameters below
     double eps;          // If the improvement falls below this threshold, stop iterating.
     double delta;        // If the number of nodes that moves falls below this threshold, stop iterating.
@@ -156,11 +158,25 @@ error_type parse_args(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, co
     }
 
     const mxArray *W = inputArgs[0];
-
     int M = mxGetM(W);
     int N = mxGetN(W);
+    // In this case we are feeding instead of the adjacency matrix, the result of [i j w]=find(A);
+    bool feedingSparseMatrix=false;
+    if (N==3 && M>3)
+    {
+        feedingSparseMatrix=true;
+    }
 
-    if (M!=N  || mxIsComplex(W) || mxIsEmpty(W) || mxIsCell(W) || !mxIsNumeric(W))
+    bool v1 = M!=N;
+    if (feedingSparseMatrix)
+        v1=false;
+    bool v2 = mxIsComplex(W);
+    bool v3 = mxIsEmpty(W);
+    bool v4 = mxIsCell(W);
+    bool v5 = !mxIsNumeric(W);
+    //bool v6 = !mxIsSparse(W);
+
+    if ( v1 || v2 || v3 || v4 || v5 )
     {
         *argposerr = 0;
         return ERROR_MATRIX;
@@ -188,10 +204,10 @@ error_type parse_args(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, co
             mexPrintf("ARGUMENT: %s VALUE=%g\n", cpartype,*mxGetPr(parval));
 #endif
             // Parse string value inputArgs[c]
-            if ( strcasecmp(cpartype,"Method")==0 )
+            if ( strcasecmp(cpartype,"quality")==0 )
             {
-                pars->method = static_cast<LouvainMethod>(*mxGetPr(parval));
-                if (pars->method<0 || pars->method>MethodKLModularity)
+                pars->quality = static_cast<LouvainMethod>(*mxGetPr(parval));
+                if (pars->quality<0 || pars->quality>MethodModularity)
                 {
                     *argposerr = argcount+1;
                     return ERROR_ARG_VALUE;
@@ -253,7 +269,7 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
 {
     LouvainParams pars;
     // Set default values for parameters
-    pars.method = MethodSurprise;
+    pars.quality = MethodSurprise;
     pars.consider_comms = Optimiser::ALL_COMMS;
     pars.eps = 1E-5;
     pars.cpmgamma = 0.5;
@@ -278,8 +294,6 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
 #ifdef _DEBUG
     printf("[INFO] Method=%d\n[INFO] Consider_comms=%d\n[INFO] CPMgamma=%f\n[INFO] Delta=%f\n[INFO] Max_itr=%zu\n[INFO] Random_order=%d rand_seed=%d\n",pars.method, pars.consider_comms, pars.cpmgamma, pars.delta, pars.max_itr, pars.random_order, pars.rand_seed);
 #endif
-    // Get number of vertices in the network
-    int N = mxGetN(inputArgs[0]);
 
     // Set the random seed on the current time in microseconds, if not specified
     if (pars.rand_seed==0)
@@ -304,120 +318,216 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
         srand(pars.rand_seed); // initialize random seed from parameters
     }
 
+
+    // BEGIN
+    igraph_t IG;
+    IGRAPH_TRY(igraph_empty(&IG,0,IGRAPH_UNDIRECTED));
+    Graph *G;
     // Fill the adjacency matrix of the graph
-    igraph_matrix_t adj;
-    igraph_matrix_view(&adj,mxGetPr(inputArgs[0]),N,N);
-
     vector<double> edge_weights;
+    // Try to understand the type of the matrix if sparse or not
+    // Get number of vertices in the network
+    int N = mxGetN(inputArgs[0]); // number of columns
+    int M = mxGetM(inputArgs[0]); // number of rows
+    double *W = mxGetPr(inputArgs[0]);
 
-    for (int i=0; i<N; ++i)
+    // In this case we are feeding instead of the adjacency matrix, the result of [i j w]=find(A);
+    bool feedingSparseMatrix=false;
+    if (M>3 && N==3)
     {
-        for (int j=i+1; j<N; j++)
-        {
-            double w = (*(mxGetPr(inputArgs[0])+i*N+j));
-            if (w>0)
-                edge_weights.push_back(w);
-        }
+        feedingSparseMatrix=true;
     }
 
-    // Create the graph from the adjacency matrix
-    igraph_t graph;
-    igraph_weighted_adjacency(&graph,&adj,IGRAPH_ADJ_UNDIRECTED,NULL,true);
-
-    // Create the Graph helper object specifying edge weights too
-    Graph *G;
     try
     {
-        G  = new Graph(&graph,edge_weights);
+        if (feedingSparseMatrix) // the input matrix is a sparse matrix with 2 or 3 columns. If 2 columns the edges list is given, if 3 columns the third column is the edge weight
+        {
+            // Map the Mx3 array memory to an Eigen container, to facilitate handling
+            Eigen::MatrixXd IJW = Eigen::Map<Eigen::MatrixXd>(W,M,N);
+            Eigen::Matrix<int,Eigen::Dynamic,Eigen::Dynamic> B1,B2;
+            B1 = (IJW.col(0).array() >= IJW.col(1).array()).cast<int>();
+            B2 = (IJW.col(0).array() < IJW.col(1).array()).cast<int>();
+
+            bool isUpperTriangular=false;
+            bool isLowerTriangular=false;
+            bool isSymmetric=false;
+            int sum1 = B1.sum();
+            int sum2 = B2.sum();
+            // Condizione semplice da verificare facendo [i j w]=find(A), oppure [i j w]=find(triu(A)) oppure [i j w]=find(tril(A))
+            if (sum1 == sum2)
+                isSymmetric=true;
+            if (sum1==0 && sum2==M)
+                isUpperTriangular=true;
+            if (sum1==M && sum2==0)
+                isLowerTriangular=true;
+
+            if (!isSymmetric && !isUpperTriangular && !isLowerTriangular)
+            {
+                throw std::logic_error("Matrix is not symmetric, nor triangular lower or upper triangular. Check diagonal and non symmetric values.");
+            }
+
+            std::vector<double> edges_list;
+
+            for (int l=0; l<M; ++l)
+            {
+                double row_node = IJW(l,0); //index of row from MATLAB find command
+                double column_node = IJW(l,1); //index of column from MATLAB find command
+                double w = IJW(l,2);
+                if ( isUpperTriangular || isLowerTriangular) // keeps only symmetric and also avoid self-loops (implicitly inserting upper triangular)
+                {
+                    edges_list.push_back(column_node-1);
+                    edges_list.push_back(row_node-1);
+                    edge_weights.push_back(w);
+                }
+                else if (isSymmetric)
+                {
+                    if (row_node<column_node)
+                    {
+                        edges_list.push_back(column_node-1);
+                        edges_list.push_back(row_node-1);
+                        edge_weights.push_back(w);
+                    }
+                }
+            }
+
+            // Fill the edges into the igraph IG
+            igraph_vector_t igedges_list;
+            igraph_vector_view(&igedges_list, edges_list.data(), 2*edge_weights.size());
+            IGRAPH_TRY(igraph_create(&IG, &igedges_list, 0, 0));
+            G = new Graph(&IG,edge_weights);
+        }
+        else // the input matrix is square adjacency matrix
+        {
+            std::vector<double> edges_list;
+            for (int i=0; i<N; ++i)
+            {
+                for (int j=i+1; j<N; j++)
+                {
+                    double w = (*(W+i*N+j));
+                    if (w>0)
+                    {
+                        edges_list.push_back(i);
+                        edges_list.push_back(j);
+                        edge_weights.push_back(w);
+                    }
+                    if (w<0)
+                    {
+                        throw Exception("Negative edge weight found. Only positive weights supported.");
+                    }
+                }
+            }
+            igraph_vector_t igedges_list;
+            igraph_vector_view(&igedges_list, edges_list.data(), 2*edge_weights.size());
+            IGRAPH_TRY(igraph_create(&IG, &igedges_list, 0, 0));
+            G = new Graph(&IG,edge_weights);
+        }
+
+        // Now that the Graph has been built it's time to run the solver.
+        {
+
+            // Create the partition function
+            MutableVertexPartition *partition;
+            // Create the optimizer instance
+            Optimiser *opt = new Optimiser;
+            opt->consider_comms = Optimiser::ALL_COMMS;
+
+            // Allocate partition method and optimization
+            switch ( pars.quality )
+            {
+            case MethodSurprise:
+            {
+                partition = new SurpriseVertexPartition(G);
+                break;
+            }
+            case MethodSignificance:
+            {
+                partition = new SignificanceVertexPartition(G);
+                break;
+            }
+            case MethodRBER:
+            {
+                partition = new RBERVertexPartition(G);
+                break;
+            }
+            case MethodRBConfiguration:
+            {
+                partition = new RBConfigurationVertexPartition(G);
+                break;
+            }
+            case MethodCPM:
+            {
+                partition = new CPMVertexPartition(G,pars.cpmgamma);
+                break;
+            }
+            case MethodModularity:
+            {
+                partition = new ModularityVertexPartition(G);
+                break;
+            }
+            }
+            // Set optimization things
+            opt->consider_comms = pars.consider_comms;
+            opt->random_order = pars.random_order;
+            opt->delta = pars.delta;
+            opt->max_itr = pars.max_itr;
+            opt->eps = pars.eps;
+
+            // Finally optimize the partition
+            double qual = opt->optimize_partition(partition);
+#ifdef _DEBUG
+            mexPrintf("G=(V,E)=%d %d\n",G->vcount(),G->ecount());
+            mexPrintf("|C|=%d Qual=%g\n",partition->nb_communities(),partition->quality());
+#endif
+            // Prepare output
+            outputArgs[0] = mxCreateDoubleMatrix(1,(mwSize)N, mxREAL);
+            double *memb = mxGetPr(outputArgs[0]);
+            // Copy the membership vector to outputArgs[0] which has been already preallocated
+            for (int i = 0; i<N ; ++i)
+                memb[i] = static_cast<double>(partition->membership(i)+1);
+
+            // Copy the value of partition quality
+            outputArgs[1] = mxCreateDoubleScalar(qual);
+            //double *q = mxGetPr(outputArgs[1]);
+            //q[0] = qual;
+
+#ifdef _DEBUG
+            size_t n = partition->graph->total_size();
+            size_t nc2 = partition->total_possible_edges_in_all_comms();
+            double mc = partition->total_weight_in_all_comms();
+            double m = partition->graph->total_weight();
+            double qual = partition->quality();
+#endif
+
+            // Cleanup the memory (follow this order)
+            delete opt;
+            delete partition;
+            delete G;
+            //IGRAPH_TRY(igraph_destroy(IG)); //always clean the igraph object, because standard destructor of GraphHelper doesn't do it.
+        }
+
     }
     catch (Exception &e)
     {
-        //mexErrMsgTxt("Input network has diagonal entries. Set them to zero.");
         mexErrMsgTxt(e.what());
     }
-    // Create the partition function
-    MutableVertexPartition *partition;
-    // Create the optimizer instance
-    Optimiser *opt = new Optimiser;
-    opt->consider_comms = Optimiser::ALL_COMMS;
 
-    // Allocate partition method and optimization
-    switch ( pars.method )
-    {
-    case MethodSurprise:
-    {
-        partition = new SurpriseVertexPartition(G);
-        break;
-    }
-    case MethodSignificance:
-    {
-        partition = new SignificanceVertexPartition(G);
-        break;
-    }
-    case MethodRBER:
-    {
-        partition = new RBERVertexPartition(G);
-        break;
-    }
-    case MethodRBConfiguration:
-    {
-        partition = new RBConfigurationVertexPartition(G);
-        break;
-    }
-    case MethodCPM:
-    {
-        partition = new CPMVertexPartition(G,pars.cpmgamma);
-        break;
-    }
-    case MethodModularity:
-    {
-        partition = new ModularityVertexPartition(G);
-        break;
-    }
-    case MethodKLModularity:
-    {
-        partition = new KLModularityVertexPartition(G);
-        break;
-    }
-    }
-    // Set optimization things
-    opt->consider_comms = pars.consider_comms;
-    opt->random_order = pars.random_order;
-    opt->delta = pars.delta;
-    opt->max_itr = pars.max_itr;
-    opt->eps = pars.eps;
+    // END
 
-    // Finally optimize the partition
-    double qual = opt->optimize_partition(partition);
-#ifdef _DEBUG
-    mexPrintf("G=(V,E)=%d %d\n",G->vcount(),G->ecount());
-    mexPrintf("|C|=%d Qual=%g\n",partition->nb_communities(),partition->quality());
-#endif
-    // Prepare output
-    outputArgs[0] = mxCreateDoubleMatrix(1,(mwSize)N, mxREAL);
-    double *memb = mxGetPr(outputArgs[0]);
-    // Copy the membership vector to outputArgs[0] which has been already preallocated
-    for (size_t i = 0; i<N ; ++i)
-        memb[i] = static_cast<double>(partition->membership(i)+1);
+    //    // Create the graph from the adjacency matrix
+    //    igraph_t graph;
+    //    igraph_weighted_adjacency(&graph,&adj,IGRAPH_ADJ_UNDIRECTED,NULL,true);
 
-    // Copy the value of partition quality
-    outputArgs[1] = mxCreateDoubleMatrix(1,1,mxREAL);
-    double *q = mxGetPr(outputArgs[1]);
-    q[0] = qual;
-
-#ifdef _DEBUG
-    size_t n = partition->graph->total_size();
-    size_t nc2 = partition->total_possible_edges_in_all_comms();
-    double mc = partition->total_weight_in_all_comms();
-    double m = partition->graph->total_weight();
-    double qual = partition->quality();
-#endif
-
-    // Cleanup the memory (follow this order)
-    delete opt;
-    delete partition;
-    delete G;
-    igraph_destroy(&graph); //always clean the igraph object, because standard destructor of GraphHelper doesn't do it.
+    //    // Create the Graph helper object specifying edge weights too
+    //    Graph *G;
+    //    try
+    //    {
+    //        G  = new Graph(&graph,edge_weights);
+    //    }
+    //    catch (Exception &e)
+    //    {
+    //        //mexErrMsgTxt("Input network has diagonal entries. Set them to zero.");
+    //        mexErrMsgTxt(e.what());
+    //    }
 
     // Finish the function
     return;

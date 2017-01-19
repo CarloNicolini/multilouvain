@@ -15,8 +15,10 @@ if(COMPILER_SUPPORTS_CXX11)
 elseif(COMPILER_SUPPORTS_CXX0X)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 else()
-        message(WARNING "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+        message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
+
+set(CMAKE_CXX_FLAGS "-Wall -Wno-deprecated-register -Wno-deprecated-declarations -std=c++11 ${CMAKE_CXX_FLAGS}")
 
 # Specify if matlab support and python wrappers are to be compiled. Default OFF
 # MATLAB support needs MEX (Tested on Ubuntu 14.04, Matlab R2013a)

@@ -26,10 +26,7 @@ double KL(double q, double p)
     return KL;
 }
 
-Graph::Graph(igraph_t* graph,
-             vector<double> edge_weights,
-             vector<size_t> node_sizes,
-             vector<double> node_self_weights, int correct_self_loops)
+Graph::Graph(igraph_t* graph, const vector<double> &edge_weights, const vector<size_t> &node_sizes, const vector<double> &node_self_weights, int correct_self_loops)
 {
     this->_graph = graph;
     this->_remove_graph = false;
@@ -51,10 +48,7 @@ Graph::Graph(igraph_t* graph,
     this->init_admin();
 }
 
-Graph::Graph(igraph_t* graph,
-             vector<double> edge_weights,
-             vector<size_t> node_sizes,
-             vector<double> node_self_weights)
+Graph::Graph(igraph_t* graph, const vector<double> &edge_weights, const vector<size_t> &node_sizes, const vector<double> &node_self_weights)
 {
     this->_graph = graph;
     this->_remove_graph = false;
@@ -72,9 +66,7 @@ Graph::Graph(igraph_t* graph,
     this->init_admin();
 }
 
-Graph::Graph(igraph_t* graph,
-             vector<double> edge_weights,
-             vector<size_t> node_sizes, int correct_self_loops)
+Graph::Graph(igraph_t* graph, const vector<double> &edge_weights, const vector<size_t> &node_sizes, int correct_self_loops)
 {
     this->_graph = graph;
     this->_remove_graph = false;
@@ -93,9 +85,7 @@ Graph::Graph(igraph_t* graph,
     this->set_self_weights();
 }
 
-Graph::Graph(igraph_t* graph,
-             vector<double> edge_weights,
-             vector<size_t> node_sizes)
+Graph::Graph(igraph_t* graph, const vector<double> &edge_weights, const vector<size_t> &node_sizes)
 {
     this->_graph = graph;
     this->_remove_graph = false;
@@ -112,7 +102,7 @@ Graph::Graph(igraph_t* graph,
     this->set_self_weights();
 }
 
-Graph::Graph(igraph_t* graph, vector<double> edge_weights, int correct_self_loops)
+Graph::Graph(igraph_t* graph, const vector<double> &edge_weights, int correct_self_loops)
 {
     this->_graph = graph;
     this->_remove_graph = false;
@@ -126,7 +116,7 @@ Graph::Graph(igraph_t* graph, vector<double> edge_weights, int correct_self_loop
     this->set_self_weights();
 }
 
-Graph::Graph(igraph_t* graph, vector<double> edge_weights)
+Graph::Graph(igraph_t* graph, const vector<double> &edge_weights)
 {
     this->_graph = graph;
     this->_remove_graph = false;

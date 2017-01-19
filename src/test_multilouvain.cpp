@@ -1,9 +1,9 @@
 #include <iostream>
 #include <fstream>
+#include <Eigen/Core>
+#include "ModularityVertexPartition.h"
 #include "GraphHelper.h"
 #include "Optimiser.h"
-#include <Eigen/Core>
-#include "KLModularityVertexPartition.h"
 
 using namespace std;
 
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
     size_t im[6]={0,0,0,1,1,1};
     vector<size_t> memb(im,im+6);
 
-    partition = new KLModularityVertexPartition(G,memb);
+    partition = new ModularityVertexPartition(G,memb);
 
     double Qold = partition->quality();
     double delta = partition->diff_move(3,0);
