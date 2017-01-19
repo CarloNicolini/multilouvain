@@ -30,12 +30,13 @@ igraph_utils.h
 )
 
 include_directories(eigen) # for linear algebra operations
+include_directories(iglfind)
 
 add_library(LOUVAIN SHARED ${LOUVAIN_SRCS} ${LOUVAIN_HDRS})
 target_link_libraries(LOUVAIN ${IGRAPH_LIBRARIES})
 
 add_executable(test_multilouvain test_multilouvain.cpp)
-target_link_libraries(test_multilouvain LOUVAIN)
+target_link_libraries(test_multilouvain LOUVAIN )
 
 if(MATLAB_SUPPORT)
     add_mex(multilouvain multilouvain.cpp)

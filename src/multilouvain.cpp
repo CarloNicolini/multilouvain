@@ -70,7 +70,8 @@ void printUsage()
     mexPrintf("Version 0.1 19 January 2017\n");
     mexPrintf("[membership, qual] = multilouvain(W);\n");
     mexPrintf("Input:\n");
-    mexPrintf("	W: an undirected weighted network with positive edge weights. Negative edge weights are not supported and an error is thrown. Remember to use real matrices, logical matrices throw error.\n");
+    mexPrintf("	W: an undirected weighted network with positive edge weights. Negative edge weights are not supported and an error is thrown. Remember to use real matrices as logical matrices throw error.\n");
+    mexPrintf(" If the input matrix is not symmetric the maximum element between edge (i,j) and edge (j,i) is taken as policy.");
     mexPrintf("Output:\n");
     mexPrintf("	membership: the membership vector that represents the community which every vertex belongs to after quality optimization.\n");
     mexPrintf("	qual: the current quality of the partition.\n");
@@ -140,7 +141,7 @@ struct LouvainParams
     size_t max_itr;      // Maximum number of iterations to perform.
     int random_order;    // If True the nodes will be traversed in a random order when optimising a quality function.
     double cpmgamma; // resolution parameter in  CPM
-    unsigned int rand_seed; // random seed for the louvain algorithm
+    int rand_seed; // random seed for the louvain algorithm
 };
 
 error_type parse_args(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const mxArray * inputArgs[], LouvainParams *pars, int *argposerr )
@@ -264,7 +265,7 @@ error_type parse_args(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, co
     }
     return NO_ERROR;
 }
-
+#include <algorithm>
 void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const mxArray * inputArgs[])
 {
     LouvainParams pars;
@@ -276,7 +277,7 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
     pars.delta = 1E-2;
     pars.max_itr = 1E4;
     pars.random_order = true;
-    pars.rand_seed = 0; // default value for the random seed, if 0 than microseconds time is used.
+    pars.rand_seed = -1; // default value for the random seed, if -1 than microseconds time is used.
 
     // Check the arguments of the function
     int error_arg_pos=-1;
@@ -296,7 +297,7 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
 #endif
 
     // Set the random seed on the current time in microseconds, if not specified
-    if (pars.rand_seed==0)
+    if (pars.rand_seed==-1)
     {
 #ifdef WIN32
         QueryPerformanceCounter(&endCount);
@@ -319,18 +320,12 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
     }
 
 
-    // BEGIN
-    igraph_t IG;
-    IGRAPH_TRY(igraph_empty(&IG,0,IGRAPH_UNDIRECTED));
-    Graph *G;
-    // Fill the adjacency matrix of the graph
-    vector<double> edge_weights;
+
     // Try to understand the type of the matrix if sparse or not
     // Get number of vertices in the network
     int N = mxGetN(inputArgs[0]); // number of columns
     int M = mxGetM(inputArgs[0]); // number of rows
     double *W = mxGetPr(inputArgs[0]);
-
     // In this case we are feeding instead of the adjacency matrix, the result of [i j w]=find(A);
     bool feedingSparseMatrix=false;
     if (M>3 && N==3)
@@ -338,16 +333,23 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
         feedingSparseMatrix=true;
     }
 
+    // The actual data
+    vector<double> edges_weights(0);
+    std::vector<double> edges_list(0);
+    // The container structure igraph_t
+    igraph_t IG;
+    IGRAPH_TRY(igraph_empty(&IG,0,IGRAPH_UNDIRECTED));
+    Graph *G;
     try
     {
+        Eigen::MatrixXd EW;
         if (feedingSparseMatrix) // the input matrix is a sparse matrix with 2 or 3 columns. If 2 columns the edges list is given, if 3 columns the third column is the edge weight
         {
             // Map the Mx3 array memory to an Eigen container, to facilitate handling
-            Eigen::MatrixXd IJW = Eigen::Map<Eigen::MatrixXd>(W,M,N);
+            EW = Eigen::Map<Eigen::MatrixXd>(W,M,N);
             Eigen::Matrix<int,Eigen::Dynamic,Eigen::Dynamic> B1,B2;
-            B1 = (IJW.col(0).array() >= IJW.col(1).array()).cast<int>();
-            B2 = (IJW.col(0).array() < IJW.col(1).array()).cast<int>();
-
+            B1 = (EW.col(0).array() >= EW.col(1).array()).cast<int>();
+            B2 = (EW.col(0).array() < EW.col(1).array()).cast<int>();
             bool isUpperTriangular=false;
             bool isLowerTriangular=false;
             bool isSymmetric=false;
@@ -363,21 +365,19 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
 
             if (!isSymmetric && !isUpperTriangular && !isLowerTriangular)
             {
-                throw std::logic_error("Matrix is not symmetric, nor triangular lower or upper triangular. Check diagonal and non symmetric values.");
+                throw Exception("Matrix is not symmetric, nor triangular lower or upper triangular. Check diagonal and non symmetric values.");
             }
-
-            std::vector<double> edges_list;
 
             for (int l=0; l<M; ++l)
             {
-                double row_node = IJW(l,0); //index of row from MATLAB find command
-                double column_node = IJW(l,1); //index of column from MATLAB find command
-                double w = IJW(l,2);
+                double row_node = EW(l,0); //index of row from MATLAB find command
+                double column_node = EW(l,1); //index of column from MATLAB find command
+                double w = EW(l,2);
                 if ( isUpperTriangular || isLowerTriangular) // keeps only symmetric and also avoid self-loops (implicitly inserting upper triangular)
                 {
                     edges_list.push_back(column_node-1);
                     edges_list.push_back(row_node-1);
-                    edge_weights.push_back(w);
+                    edges_weights.push_back(w);
                 }
                 else if (isSymmetric)
                 {
@@ -385,149 +385,148 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
                     {
                         edges_list.push_back(column_node-1);
                         edges_list.push_back(row_node-1);
-                        edge_weights.push_back(w);
+                        edges_weights.push_back(w);
                     }
                 }
             }
-
-            // Fill the edges into the igraph IG
-            igraph_vector_t igedges_list;
-            igraph_vector_view(&igedges_list, edges_list.data(), 2*edge_weights.size());
-            IGRAPH_TRY(igraph_create(&IG, &igedges_list, 0, 0));
-            G = new Graph(&IG,edge_weights);
         }
         else // the input matrix is square adjacency matrix
         {
-            std::vector<double> edges_list;
+            EW = Eigen::Map<Eigen::MatrixXd>(W,N,N);
+            if (EW.trace() > 0)
+            {
+                throw std::logic_error("Adjacency matrix has self loops, only simple graphs allowed.");
+            }
             for (int i=0; i<N; ++i)
             {
                 for (int j=i+1; j<N; j++)
                 {
-                    double w = (*(W+i*N+j));
+                    double w = std::max(EW.coeffRef(i,j),EW.coeffRef(j,i));
                     if (w>0)
                     {
                         edges_list.push_back(i);
                         edges_list.push_back(j);
-                        edge_weights.push_back(w);
+                        edges_weights.push_back(w);
                     }
                     if (w<0)
                     {
-                        throw Exception("Negative edge weight found. Only positive weights supported.");
+                        throw std::logic_error("Negative edge weight found. Only positive weights supported.");
                     }
                 }
             }
-            igraph_vector_t igedges_list;
-            igraph_vector_view(&igedges_list, edges_list.data(), 2*edge_weights.size());
-            IGRAPH_TRY(igraph_create(&IG, &igedges_list, 0, 0));
-            G = new Graph(&IG,edge_weights);
         }
+
+        if (edges_list.empty())
+            throw std::logic_error("Empty graph provided.");
+
+        // Create the Graph object from the igraph data structure
+        // Fill the edges into the igraph IG
+        igraph_vector_t igedges_list;
+        igraph_vector_view(&igedges_list, edges_list.data(), edges_list.size());
+        IGRAPH_TRY(igraph_create(&IG, &igedges_list, 0, 0));
+        // cout << "=========" << endl;
+        // cerr << "G=(V,E)=" << igraph_vcount(&IG) << " " << igraph_ecount(&IG) << endl;
+        G = new Graph(&IG,edges_weights);
+
+        // Alternatively check look at the solution provided by igl::find that exactly emulates Matlab's find
+        // http://libigl.github.io/libigl/matlab-to-eigen.html
+        //        Eigen::VectorXd I,J,V;
+        //        igl::find(EW,I,J,V);
+        //        //cout << I << "\n--\n" << J << "\n--\n" << V << endl;
+        //        Eigen::MatrixXd IJ(2,I.size());
+        //        IJ << I, J;
+        //        //IJ.transposeInPlace();
+        //        cout << "============" << endl;
+        //        cout << Eigen::Map<Eigen::VectorXd>(IJ.data(),IJ.size()).data() << endl;
+        //        cout << "============" << endl;
+        //        // Build the graph
+        //        igraph_vector_t igedges_list;
+        //        igraph_vector_view(&igedges_list, IJ.data(), IJ.size());
+        //        IGRAPH_TRY(igraph_create(&IG, &igedges_list, 0, 0));
+        //        cerr << "G=(V,E)=" << igraph_vcount(&IG) << " " << igraph_ecount(&IG) << endl;
+        //        G = new Graph(&IG, std::vector<double>(V.data(),V.data() + V.size()));
 
         // Now that the Graph has been built it's time to run the solver.
+        // Create the partition function
+        MutableVertexPartition *partition;
+        // Create the optimizer instance
+        Optimiser *opt = new Optimiser;
+        opt->consider_comms = Optimiser::ALL_COMMS;
+
+        // Allocate partition method and optimization
+        switch ( pars.quality )
         {
-
-            // Create the partition function
-            MutableVertexPartition *partition;
-            // Create the optimizer instance
-            Optimiser *opt = new Optimiser;
-            opt->consider_comms = Optimiser::ALL_COMMS;
-
-            // Allocate partition method and optimization
-            switch ( pars.quality )
-            {
-            case MethodSurprise:
-            {
-                partition = new SurpriseVertexPartition(G);
-                break;
-            }
-            case MethodSignificance:
-            {
-                partition = new SignificanceVertexPartition(G);
-                break;
-            }
-            case MethodRBER:
-            {
-                partition = new RBERVertexPartition(G);
-                break;
-            }
-            case MethodRBConfiguration:
-            {
-                partition = new RBConfigurationVertexPartition(G);
-                break;
-            }
-            case MethodCPM:
-            {
-                partition = new CPMVertexPartition(G,pars.cpmgamma);
-                break;
-            }
-            case MethodModularity:
-            {
-                partition = new ModularityVertexPartition(G);
-                break;
-            }
-            }
-            // Set optimization things
-            opt->consider_comms = pars.consider_comms;
-            opt->random_order = pars.random_order;
-            opt->delta = pars.delta;
-            opt->max_itr = pars.max_itr;
-            opt->eps = pars.eps;
-
-            // Finally optimize the partition
-            double qual = opt->optimize_partition(partition);
-#ifdef _DEBUG
-            mexPrintf("G=(V,E)=%d %d\n",G->vcount(),G->ecount());
-            mexPrintf("|C|=%d Qual=%g\n",partition->nb_communities(),partition->quality());
-#endif
-            // Prepare output
-            outputArgs[0] = mxCreateDoubleMatrix(1,(mwSize)N, mxREAL);
-            double *memb = mxGetPr(outputArgs[0]);
-            // Copy the membership vector to outputArgs[0] which has been already preallocated
-            for (int i = 0; i<N ; ++i)
-                memb[i] = static_cast<double>(partition->membership(i)+1);
-
-            // Copy the value of partition quality
-            outputArgs[1] = mxCreateDoubleScalar(qual);
-            //double *q = mxGetPr(outputArgs[1]);
-            //q[0] = qual;
-
-#ifdef _DEBUG
-            size_t n = partition->graph->total_size();
-            size_t nc2 = partition->total_possible_edges_in_all_comms();
-            double mc = partition->total_weight_in_all_comms();
-            double m = partition->graph->total_weight();
-            double qual = partition->quality();
-#endif
-
-            // Cleanup the memory (follow this order)
-            delete opt;
-            delete partition;
-            delete G;
-            //IGRAPH_TRY(igraph_destroy(IG)); //always clean the igraph object, because standard destructor of GraphHelper doesn't do it.
+        case MethodSurprise:
+        {
+            partition = new SurpriseVertexPartition(G);
+            break;
         }
+        case MethodSignificance:
+        {
+            partition = new SignificanceVertexPartition(G);
+            break;
+        }
+        case MethodRBER:
+        {
+            partition = new RBERVertexPartition(G);
+            break;
+        }
+        case MethodRBConfiguration:
+        {
+            partition = new RBConfigurationVertexPartition(G);
+            break;
+        }
+        case MethodCPM:
+        {
+            partition = new CPMVertexPartition(G,pars.cpmgamma);
+            break;
+        }
+        case MethodModularity:
+        {
+            partition = new ModularityVertexPartition(G);
+            break;
+        }
+        }
+        // Set optimization things
+        opt->consider_comms = pars.consider_comms;
+        opt->random_order = pars.random_order;
+        opt->delta = pars.delta;
+        opt->max_itr = pars.max_itr;
+        opt->eps = pars.eps;
 
+        // Finally optimize the partition
+        double qual = opt->optimize_partition(partition);
+#ifdef _DEBUG
+        mexPrintf("G=(V,E)=%d %d\n",G->vcount(),G->ecount());
+        mexPrintf("|C|=%d Qual=%g\n",partition->nb_communities(),partition->quality());
+#endif
+        // Prepare output
+        outputArgs[0] = mxCreateDoubleMatrix(1,(mwSize)G->vcount(), mxREAL);
+        double *memb = mxGetPr(outputArgs[0]);
+        // Copy the membership vector to outputArgs[0] which has been already preallocated
+        for (int i = 0; i<N ; ++i)
+            memb[i] = static_cast<double>(partition->membership(i)+1);
+
+        // Copy the value of partition quality
+        outputArgs[1] = mxCreateDoubleScalar(qual);
+
+#ifdef _DEBUG
+        size_t n = partition->graph->total_size();
+        size_t nc2 = partition->total_possible_edges_in_all_comms();
+        double mc = partition->total_weight_in_all_comms();
+        double m = partition->graph->total_weight();
+        double qual = partition->quality();
+#endif
+
+        // Cleanup the memory (follow this order)
+        delete opt;
+        delete partition;
+        delete G;
     }
-    catch (Exception &e)
+    catch (std::exception &e)
     {
         mexErrMsgTxt(e.what());
     }
-
-    // END
-
-    //    // Create the graph from the adjacency matrix
-    //    igraph_t graph;
-    //    igraph_weighted_adjacency(&graph,&adj,IGRAPH_ADJ_UNDIRECTED,NULL,true);
-
-    //    // Create the Graph helper object specifying edge weights too
-    //    Graph *G;
-    //    try
-    //    {
-    //        G  = new Graph(&graph,edge_weights);
-    //    }
-    //    catch (Exception &e)
-    //    {
-    //        //mexErrMsgTxt("Input network has diagonal entries. Set them to zero.");
-    //        mexErrMsgTxt(e.what());
-    //    }
 
     // Finish the function
     return;
