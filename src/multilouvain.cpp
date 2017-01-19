@@ -53,6 +53,9 @@
 using namespace std;
 #define IS_ADJACENCY_MATRIX(P) (!mxIsComplex(P) && mxGetNumberOfDimensions(P) == 2 && !mxIsSparse(P) && (mxIsDouble(P) || mxIsUint8(P) || mxIsUint8(P) || mxIsLogical(P)))
 
+/**
+ * @brief The LouvainMethod enum
+ */
 enum LouvainMethod
 {
     MethodSurprise = 0,
@@ -63,7 +66,9 @@ enum LouvainMethod
     MethodModularity = 5,
 };
 
-
+/**
+ * @brief printUsage
+ */
 void printUsage()
 {
     mexPrintf("LOUVAIN Louvain Algorithm for community detection.\n");
@@ -106,7 +111,9 @@ void printUsage()
     mexPrintf(">> [memb, qual] = multilouvain(A,'method',2,'consider_comms',2);\n");
 }
 
-
+/**
+ * @brief The error_type enum
+ */
 enum error_type
 {
     NO_ERROR = 0,
@@ -132,6 +139,9 @@ static const char *error_strings[] =
     "Unkwown argument."
 };
 
+/**
+ * @brief The LouvainParams struct
+ */
 struct LouvainParams
 {
     LouvainMethod quality;
@@ -144,6 +154,16 @@ struct LouvainParams
     int rand_seed; // random seed for the louvain algorithm
 };
 
+/**
+ * @brief parse_args
+ * @param nOutputArgs
+ * @param outputArgs
+ * @param nInputArgs
+ * @param inputArgs
+ * @param pars
+ * @param argposerr
+ * @return
+ */
 error_type parse_args(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const mxArray * inputArgs[], LouvainParams *pars, int *argposerr )
 {
     if (nInputArgs < 1)
@@ -265,7 +285,14 @@ error_type parse_args(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, co
     }
     return NO_ERROR;
 }
-#include <algorithm>
+
+/**
+ * @brief mexFunction
+ * @param nOutputArgs
+ * @param outputArgs
+ * @param nInputArgs
+ * @param inputArgs
+ */
 void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const mxArray * inputArgs[])
 {
     LouvainParams pars;
@@ -318,8 +345,6 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
     {
         srand(pars.rand_seed); // initialize random seed from parameters
     }
-
-
 
     // Try to understand the type of the matrix if sparse or not
     // Get number of vertices in the network
@@ -487,6 +512,7 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
             break;
         }
         }
+
         // Set optimization things
         opt->consider_comms = pars.consider_comms;
         opt->random_order = pars.random_order;
@@ -496,10 +522,6 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
 
         // Finally optimize the partition
         double qual = opt->optimize_partition(partition);
-#ifdef _DEBUG
-        mexPrintf("G=(V,E)=%d %d\n",G->vcount(),G->ecount());
-        mexPrintf("|C|=%d Qual=%g\n",partition->nb_communities(),partition->quality());
-#endif
         // Prepare output
         outputArgs[0] = mxCreateDoubleMatrix(1,(mwSize)G->vcount(), mxREAL);
         double *memb = mxGetPr(outputArgs[0]);
@@ -509,14 +531,6 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
 
         // Copy the value of partition quality
         outputArgs[1] = mxCreateDoubleScalar(qual);
-
-#ifdef _DEBUG
-        size_t n = partition->graph->total_size();
-        size_t nc2 = partition->total_possible_edges_in_all_comms();
-        double mc = partition->total_weight_in_all_comms();
-        double m = partition->graph->total_weight();
-        double qual = partition->quality();
-#endif
 
         // Cleanup the memory (follow this order)
         delete opt;
