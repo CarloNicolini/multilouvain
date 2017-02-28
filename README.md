@@ -1,6 +1,13 @@
 # multilouvain
 Matlab/C++ implementation of Traag Louvain methods appliable to different quality functions. This code has some modifications with respect to the Traag's one to make available calls to member function that have been moved from private to public, as well as other minor things.
 
+To clone this repository you must
+
+    git clone https://github.com/carlonicolini/multilouvain
+    git submodule update --init --recursive
+
+The last command is because it contains Eigen as a submodule
+
 To compile the code:
 
     mkdir build
