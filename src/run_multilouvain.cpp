@@ -5,6 +5,7 @@
 #include "GraphHelper.h"
 #include "Optimiser.h"
 #include "igraph_utils.h"
+#include "SurpriseVertexPartition.h"
 
 using namespace std;
 
@@ -73,8 +74,9 @@ void igraph_matrix_view(igraph_matrix_t *A, igraph_real_t *data, int nrows, int 
 int main(int argc, char *argv[])
 {
 
-    vector<double> edges_weights(0);
-    std::vector<double> edges_list(0);
+    srand(time(0));
+    std::vector<double> edges_weights;
+    std::vector<double> edges_list;
     // The container structure igraph_t
 
     std::vector<double> data = read_adj_matrix(std::string(argv[1]));
@@ -112,13 +114,37 @@ int main(int argc, char *argv[])
     igraph_vector_view(&igedges_list, edges_list.data(), edges_list.size());
     igraph_t IG;
     IGRAPH_TRY(igraph_create(&IG, &igedges_list, 0, 0));
-    // cout << "=========" << endl;
-    // cerr << "G=(V,E)=" << igraph_vcount(&IG) << " " << igraph_ecount(&IG) << endl;
-    //Graph *G  = new Graph(&IG,edges_weights);
-    //cerr << G->ecount() << endl;
-    //delete G;
 
-    igraph_vector_destroy(&igedges_list);
+    Graph *G  = new Graph(&IG,edges_weights);
+
+    MutableVertexPartition *partition;
+    // Create the optimizer instance
+    Optimiser *opt = new Optimiser;
+    opt->consider_comms = Optimiser::ALL_COMMS;
+    partition = new SurpriseVertexPartition(G);
+
+    // Set optimization things
+    opt->consider_comms = Optimiser::ALL_COMMS;
+    opt->random_order = 1;
+    //opt->delta = pars.delta;
+    //opt->max_itr = pars.max_itr;
+    //opt->eps = pars.eps;
+
+    // Finally optimize the partition
+    double qual = opt->optimize_partition(partition);
+    cout << "FINAL QUALITY=" <<  qual << endl;
+
+    ofstream membership;
+    membership.open("membership.memb");
+    for (int i = 0; i<N ; ++i)
+        membership << partition->membership(i)+1 << " ";
+    membership << endl;
+
+    delete opt;
+
+    delete G;
+    igraph_destroy(&IG);
+
     return 0;
 }
 
