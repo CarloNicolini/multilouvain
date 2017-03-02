@@ -79,6 +79,15 @@ int main(int argc, char *argv[])
     std::vector<double> edges_list;
     // The container structure igraph_t
 
+    typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> Matrix_NxN;
+//    Matrix_NxN J = Matrix_NxN::Random(5,5);
+//    Eigen::write_binary("matrix.dat",J);
+//    std::cout << "\n original \n" << J << std::endl;
+//    Matrix_NxN A;
+//    Eigen::read_binary("ciccio",A);
+//    std::cout << "\n copy \n" << A << std::endl;
+//    return 0;
+
     std::vector<double> data = read_adj_matrix(std::string(argv[1]));
 
     int N = sqrt(data.size());
@@ -120,15 +129,13 @@ int main(int argc, char *argv[])
     MutableVertexPartition *partition;
     // Create the optimizer instance
     Optimiser *opt = new Optimiser;
-    opt->consider_comms = Optimiser::ALL_COMMS;
-    partition = new SurpriseVertexPartition(G);
-
+    opt->consider_comms = Optimiser::RAND_NEIGH_COMM;
     // Set optimization things
-    opt->consider_comms = Optimiser::ALL_COMMS;
     opt->random_order = 1;
     //opt->delta = pars.delta;
     //opt->max_itr = pars.max_itr;
     //opt->eps = pars.eps;
+    partition = new SurpriseVertexPartition(G);
 
     // Finally optimize the partition
     double qual = opt->optimize_partition(partition);
@@ -144,7 +151,7 @@ int main(int argc, char *argv[])
 
     delete G;
     igraph_destroy(&IG);
-
+    delete partition;
     return 0;
 }
 
