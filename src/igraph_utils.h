@@ -4,6 +4,8 @@
 #include <igraph_error.h>
 #include <stdexcept>
 #include <sstream>
+#include <fstream>
+#include <vector>
 
 #define IGRAPH_TRY(call){\
     int __result = call;\
@@ -22,5 +24,7 @@
     }
 
 void igraph_matrix_view(igraph_matrix_t *A, igraph_real_t *data, int nrows, int ncols);
+
+std::vector<double> read_adj_matrix(const std::string &filename);
 
 #endif

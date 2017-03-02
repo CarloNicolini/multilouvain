@@ -38,6 +38,9 @@ target_link_libraries(LOUVAIN ${IGRAPH_LIBRARIES})
 add_executable(test_multilouvain test_multilouvain.cpp)
 target_link_libraries(test_multilouvain LOUVAIN )
 
+add_executable(run_multilouvain run_multilouvain.cpp)
+target_link_libraries(run_multilouvain LOUVAIN )
+
 if(MATLAB_SUPPORT)
     add_mex(multilouvain multilouvain.cpp)
     target_link_libraries(multilouvain LOUVAIN ${MATLAB_LIBRARIES})
