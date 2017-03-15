@@ -356,7 +356,7 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
     {
         Graph *G = init(W, N, M);
         cout << G->vcount() <<  " " << G->ecount() << endl;
-        #ifdef ABC
+
         // Now that the Graph has been built it's time to run the solver.
         // Create the partition function
         MutableVertexPartition *partition;
@@ -416,14 +416,12 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
 
         // Copy the value of partition quality
         outputArgs[1] = mxCreateDoubleScalar(qual);
-        cout << "==============" << endl;
         cout << partition->membership() << endl;
-        cout << "==============" << endl;
         // Cleanup the memory (follow this order)
         delete opt;
         delete partition;
-        delete G;
-        #endif
+        G->dispose(); // must manually clear the underlying igraph_t
+        delete G; // then delete the pointer
     }
     catch (std::exception &e)
     {

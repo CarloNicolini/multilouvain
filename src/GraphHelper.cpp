@@ -597,8 +597,8 @@ Graph * init(double *W, int N, int M)
     {
         feedingSparseMatrix = true;
     }
-    vector<double> edges_weights(0);
-    vector<double> edges_list(0);
+    vector<double> edges_weights;
+    vector<double> edges_list;
     if (feedingSparseMatrix) // the input matrix is a sparse matrix with 2 or 3 columns. If 2 columns the edges list is given, if 3 columns the third column is the edge weight
     {
         Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> B1, B2;
@@ -673,14 +673,14 @@ Graph * init(double *W, int N, int M)
 
     // Create the Graph object from the igraph data structure
     // Fill the edges into the igraph IG
-    igraph_t IG;
+    igraph_t *IG = new igraph_t;
     igraph_vector_t igedges_list;
     igraph_vector_view(&igedges_list, edges_list.data(), edges_list.size());
-    igraph_create(&IG, &igedges_list, 0, 0);
+    igraph_create(IG, &igedges_list, std::max(N,M), 0);
 
-    Graph *G = new Graph(&IG, edges_weights);
+    Graph *G = new Graph(IG, edges_weights);
     
-    igraph_destroy(&IG);
+    //igraph_destroy(&IG);
 
     return G;
 }

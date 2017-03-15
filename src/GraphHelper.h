@@ -165,6 +165,12 @@ public:
             throw Exception("Incorrect mode specified.");
     }
 
+    inline void dispose()
+    {
+        igraph_destroy(_graph);
+        delete this->_graph;
+    }
+
 protected:
 
     int _remove_graph;
