@@ -53,8 +53,7 @@ enum error_type
 //    "Not enough input arguments.",
 //    "Non valid argument value.",
 //    "Non valid argument type.",
-//    "Non valid input adjacency matrix. PACO accepts symmetric real dense-type (n x n) matrices or sparse edges-list representation \
-//    [num_edges x 3] array of edges list with edge endpoints and weight.",
+//    "Non valid input adjacency matrix. PACO accepts symmetric real dense-type (n x n) matrices or sparse edges-list representation     [num_edges x 3] array of edges list with edge endpoints and weight.",
 //    "Expected some argument value but empty found.",
 //    "Unkwown argument."
 //};
