@@ -493,6 +493,8 @@ size_t Graph::get_random_neighbour(size_t v, igraph_neimode_t mode)
     return rand_neigh;
 }
 
+#include <iostream>
+using namespace std;
 /****************************************************************************
   Creates a graph with communities as node and links as weights between
   communities.
@@ -595,7 +597,6 @@ Graph * init(double *W, int N, int M)
     {
         feedingSparseMatrix = true;
     }
-
     vector<double> edges_weights(0);
     vector<double> edges_list(0);
     if (feedingSparseMatrix) // the input matrix is a sparse matrix with 2 or 3 columns. If 2 columns the edges list is given, if 3 columns the third column is the edge weight
@@ -620,7 +621,6 @@ Graph * init(double *W, int N, int M)
         {
             throw Exception("Matrix is not symmetric, nor triangular lower or upper triangular. Check diagonal and non symmetric values.");
         }
-
         for (int l = 0; l < M; ++l)
         {
             double row_node = EW(l, 0); //index of row from MATLAB find command
@@ -679,6 +679,8 @@ Graph * init(double *W, int N, int M)
     igraph_create(&IG, &igedges_list, 0, 0);
 
     Graph *G = new Graph(&IG, edges_weights);
+    
     igraph_destroy(&IG);
+
     return G;
 }

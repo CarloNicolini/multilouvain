@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
     
     // Create the Graph helper object specifying edge weights too
     Graph *G = init(A.data(),A.rows(),A.cols());
-    
+    cout << G->ecount() << endl;
     delete G;
     return 0;
 

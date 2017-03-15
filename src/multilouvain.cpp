@@ -122,8 +122,8 @@ enum error_type
     ERROR_ARG_VALUE = 3,
     ERROR_ARG_TYPE = 4,
     ERROR_MATRIX = 5,
-    ERROR_ARG_EMPTY=6,
-    ERROR_ARG_UNKNOWN=7
+    ERROR_ARG_EMPTY = 6,
+    ERROR_ARG_UNKNOWN = 7
 };
 
 static const char *error_strings[] =
@@ -172,7 +172,7 @@ error_type parse_args(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, co
         return ERROR_NOT_ENOUGH_ARGS;
     }
 
-    if (nOutputArgs>2)
+    if (nOutputArgs > 2)
     {
         *argposerr = 0;
         return ERROR_TOO_MANY_OUTPUT_ARGS;
@@ -182,15 +182,15 @@ error_type parse_args(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, co
     int M = mxGetM(W);
     int N = mxGetN(W);
     // In this case we are feeding instead of the adjacency matrix, the result of [i j w]=find(A);
-    bool feedingSparseMatrix=false;
-    if (N==3 && M>3)
+    bool feedingSparseMatrix = false;
+    if (N == 3 && M > 3)
     {
-        feedingSparseMatrix=true;
+        feedingSparseMatrix = true;
     }
 
-    bool v1 = M!=N;
+    bool v1 = M != N;
     if (feedingSparseMatrix)
-        v1=false;
+        v1 = false;
     bool v2 = mxIsComplex(W);
     bool v3 = mxIsEmpty(W);
     bool v4 = mxIsCell(W);
@@ -204,71 +204,71 @@ error_type parse_args(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, co
     }
 
     // Iterate on function arguments
-    int argcount=1;
-    while (argcount<nInputArgs)
+    int argcount = 1;
+    while (argcount < nInputArgs)
     {
         // Be sure that something exists after c-th argument
-        if (argcount+1 >= nInputArgs)
+        if (argcount + 1 >= nInputArgs)
         {
             *argposerr = argcount;
             return ERROR_ARG_EMPTY;
         }
         // Couple argument type - argument value
         const mxArray *partype = inputArgs[argcount];
-        const mxArray *parval = inputArgs[argcount+1];
+        const mxArray *parval = inputArgs[argcount + 1];
         char* cpartype;
         // To be a valid parameter specification it must be a couple ['char',real]
         if (mxIsChar(partype) && !mxIsChar(parval))
         {
             cpartype = mxArrayToString(partype);
 #ifdef _DEBUG
-            mexPrintf("ARGUMENT: %s VALUE=%g\n", cpartype,*mxGetPr(parval));
+            mexPrintf("ARGUMENT: %s VALUE=%g\n", cpartype, *mxGetPr(parval));
 #endif
             // Parse string value inputArgs[c]
-            if ( strcasecmp(cpartype,"quality")==0 )
+            if ( strcasecmp(cpartype, "quality") == 0 )
             {
                 pars->quality = static_cast<LouvainMethod>(*mxGetPr(parval));
-                if (pars->quality<0 || pars->quality>MethodModularity)
+                if (pars->quality < 0 || pars->quality > MethodModularity)
                 {
-                    *argposerr = argcount+1;
+                    *argposerr = argcount + 1;
                     return ERROR_ARG_VALUE;
                 }
-                argcount+=2;
+                argcount += 2;
             }
-            else if ( strcasecmp(cpartype,static_cast<const char*>("consider_comms"))==0 )
+            else if ( strcasecmp(cpartype, static_cast<const char*>("consider_comms")) == 0 )
             {
                 pars->consider_comms = static_cast<int>(*mxGetPr(parval));
-                if (pars->consider_comms <1 || pars->consider_comms > 4)
+                if (pars->consider_comms < 1 || pars->consider_comms > 4)
                 {
-                    *argposerr = argcount+1;
+                    *argposerr = argcount + 1;
                     return ERROR_ARG_VALUE;
                 }
-                argcount+=2;
+                argcount += 2;
             }
-            else if ( strcasecmp(cpartype,static_cast<const char*>("cpm_gamma"))==0 )
+            else if ( strcasecmp(cpartype, static_cast<const char*>("cpm_gamma")) == 0 )
             {
                 pars->cpmgamma = (*mxGetPr(parval));
-                argcount+=2;
+                argcount += 2;
             }
-            else if ( strcasecmp(cpartype,static_cast<const char*>("delta"))==0 )
+            else if ( strcasecmp(cpartype, static_cast<const char*>("delta")) == 0 )
             {
                 pars->delta = *mxGetPr(parval);
-                argcount+=2;
+                argcount += 2;
             }
-            else if ( strcasecmp(cpartype,static_cast<const char*>("max_itr"))==0 )
+            else if ( strcasecmp(cpartype, static_cast<const char*>("max_itr")) == 0 )
             {
                 pars->max_itr = static_cast<size_t>(std::floor(*mxGetPr(parval)));
-                argcount+=2;
+                argcount += 2;
             }
-            else if ( strcasecmp(cpartype,static_cast<const char*>("random_order"))==0 )
+            else if ( strcasecmp(cpartype, static_cast<const char*>("random_order")) == 0 )
             {
-                pars->random_order = static_cast<bool>((*mxGetPr(parval))>0);
-                argcount+=2;
+                pars->random_order = static_cast<bool>((*mxGetPr(parval)) > 0);
+                argcount += 2;
             }
-            else if ( strcasecmp(cpartype,static_cast<const char*>("seed"))==0 )
+            else if ( strcasecmp(cpartype, static_cast<const char*>("seed")) == 0 )
             {
                 pars->rand_seed = static_cast<int>(std::floor(*mxGetPr(parval)));
-                argcount+=2;
+                argcount += 2;
             }
             else
             {
@@ -307,10 +307,10 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
     pars.rand_seed = -1; // default value for the random seed, if -1 than microseconds time is used.
 
     // Check the arguments of the function
-    int error_arg_pos=-1;
+    int error_arg_pos = -1;
     error_type err = parse_args(nOutputArgs, outputArgs, nInputArgs, inputArgs, &pars, &error_arg_pos);
 
-    if (err!=NO_ERROR)
+    if (err != NO_ERROR)
     {
         std::stringstream ss;
         ss << "Error at " << error_arg_pos << "-th argument: " << error_strings[err] ;
@@ -320,11 +320,11 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
     }
 
 #ifdef _DEBUG
-    printf("[INFO] Method=%d\n[INFO] Consider_comms=%d\n[INFO] CPMgamma=%f\n[INFO] Delta=%f\n[INFO] Max_itr=%zu\n[INFO] Random_order=%d rand_seed=%d\n",pars.method, pars.consider_comms, pars.cpmgamma, pars.delta, pars.max_itr, pars.random_order, pars.rand_seed);
+    printf("[INFO] Method=%d\n[INFO] Consider_comms=%d\n[INFO] CPMgamma=%f\n[INFO] Delta=%f\n[INFO] Max_itr=%zu\n[INFO] Random_order=%d rand_seed=%d\n", pars.method, pars.consider_comms, pars.cpmgamma, pars.delta, pars.max_itr, pars.random_order, pars.rand_seed);
 #endif
 
     // Set the random seed on the current time in microseconds, if not specified
-    if (pars.rand_seed==-1)
+    if (pars.rand_seed == -1)
     {
 #ifdef WIN32
         QueryPerformanceCounter(&endCount);
@@ -351,132 +351,17 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
     int N = mxGetN(inputArgs[0]); // number of columns
     int M = mxGetM(inputArgs[0]); // number of rows
     double *W = mxGetPr(inputArgs[0]);
-    // In this case we are feeding instead of the adjacency matrix, the result of [i j w]=find(A);
-    bool feedingSparseMatrix=false;
-    if (M>3 && N==3)
-    {
-        feedingSparseMatrix=true;
-    }
-
-    // The actual data
-    vector<double> edges_weights(0);
-    std::vector<double> edges_list(0);
-    // The container structure igraph_t
-    igraph_t IG;
-    IGRAPH_TRY(igraph_empty(&IG,0,IGRAPH_UNDIRECTED));
-    Graph *G;
+    
     try
     {
-        Eigen::MatrixXd EW;
-        if (feedingSparseMatrix) // the input matrix is a sparse matrix with 2 or 3 columns. If 2 columns the edges list is given, if 3 columns the third column is the edge weight
-        {
-            // Map the Mx3 array memory to an Eigen container, to facilitate handling
-            EW = Eigen::Map<Eigen::MatrixXd>(W,M,N);
-            Eigen::Matrix<int,Eigen::Dynamic,Eigen::Dynamic> B1,B2;
-            B1 = (EW.col(0).array() >= EW.col(1).array()).cast<int>();
-            B2 = (EW.col(0).array() < EW.col(1).array()).cast<int>();
-            bool isUpperTriangular=false;
-            bool isLowerTriangular=false;
-            bool isSymmetric=false;
-            int sum1 = B1.sum();
-            int sum2 = B2.sum();
-            // Condizione semplice da verificare facendo [i j w]=find(A), oppure [i j w]=find(triu(A)) oppure [i j w]=find(tril(A))
-            if (sum1 == sum2)
-                isSymmetric=true;
-            if (sum1==0 && sum2==M)
-                isUpperTriangular=true;
-            if (sum1==M && sum2==0)
-                isLowerTriangular=true;
-
-            if (!isSymmetric && !isUpperTriangular && !isLowerTriangular)
-            {
-                throw Exception("Matrix is not symmetric, nor triangular lower or upper triangular. Check diagonal and non symmetric values.");
-            }
-
-            for (int l=0; l<M; ++l)
-            {
-                double row_node = EW(l,0); //index of row from MATLAB find command
-                double column_node = EW(l,1); //index of column from MATLAB find command
-                double w = EW(l,2);
-                if ( isUpperTriangular || isLowerTriangular) // keeps only symmetric and also avoid self-loops (implicitly inserting upper triangular)
-                {
-                    edges_list.push_back(column_node-1);
-                    edges_list.push_back(row_node-1);
-                    edges_weights.push_back(w);
-                }
-                else if (isSymmetric)
-                {
-                    if (row_node<column_node)
-                    {
-                        edges_list.push_back(column_node-1);
-                        edges_list.push_back(row_node-1);
-                        edges_weights.push_back(w);
-                    }
-                }
-            }
-        }
-        else // the input matrix is square adjacency matrix
-        {
-            EW = Eigen::Map<Eigen::MatrixXd>(W,N,N);
-            if (EW.trace() > 0)
-            {
-                throw std::logic_error("Adjacency matrix has self loops, only simple graphs allowed.");
-            }
-            for (int i=0; i<N; ++i)
-            {
-                for (int j=i+1; j<N; j++)
-                {
-                    double w = std::max(EW.coeffRef(i,j),EW.coeffRef(j,i));
-                    if (w>0)
-                    {
-                        edges_list.push_back(i);
-                        edges_list.push_back(j);
-                        edges_weights.push_back(w);
-                    }
-                    if (w<0)
-                    {
-                        throw std::logic_error("Negative edge weight found. Only positive weights supported.");
-                    }
-                }
-            }
-        }
-
-        if (edges_list.empty())
-            throw std::logic_error("Empty graph provided.");
-
-        // Create the Graph object from the igraph data structure
-        // Fill the edges into the igraph IG
-        igraph_vector_t igedges_list;
-        igraph_vector_view(&igedges_list, edges_list.data(), edges_list.size());
-        IGRAPH_TRY(igraph_create(&IG, &igedges_list, 0, 0));
-        // cout << "=========" << endl;
-        // cerr << "G=(V,E)=" << igraph_vcount(&IG) << " " << igraph_ecount(&IG) << endl;
-        G = new Graph(&IG,edges_weights);
-
-        // Alternatively check look at the solution provided by igl::find that exactly emulates Matlab's find
-        // http://libigl.github.io/libigl/matlab-to-eigen.html
-        //        Eigen::VectorXd I,J,V;
-        //        igl::find(EW,I,J,V);
-        //        //cout << I << "\n--\n" << J << "\n--\n" << V << endl;
-        //        Eigen::MatrixXd IJ(2,I.size());
-        //        IJ << I, J;
-        //        //IJ.transposeInPlace();
-        //        cout << "============" << endl;
-        //        cout << Eigen::Map<Eigen::VectorXd>(IJ.data(),IJ.size()).data() << endl;
-        //        cout << "============" << endl;
-        //        // Build the graph
-        //        igraph_vector_t igedges_list;
-        //        igraph_vector_view(&igedges_list, IJ.data(), IJ.size());
-        //        IGRAPH_TRY(igraph_create(&IG, &igedges_list, 0, 0));
-        //        cerr << "G=(V,E)=" << igraph_vcount(&IG) << " " << igraph_ecount(&IG) << endl;
-        //        G = new Graph(&IG, std::vector<double>(V.data(),V.data() + V.size()));
-
+        Graph *G = init(W, N, M);
+        cout << G->vcount() <<  " " << G->ecount() << endl;
+        #ifdef ABC
         // Now that the Graph has been built it's time to run the solver.
         // Create the partition function
         MutableVertexPartition *partition;
         // Create the optimizer instance
         Optimiser *opt = new Optimiser;
-        opt->consider_comms = Optimiser::ALL_COMMS;
 
         // Allocate partition method and optimization
         switch ( pars.quality )
@@ -503,7 +388,7 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
         }
         case MethodCPM:
         {
-            partition = new CPMVertexPartition(G,pars.cpmgamma);
+            partition = new CPMVertexPartition(G, pars.cpmgamma);
             break;
         }
         case MethodModularity:
@@ -523,19 +408,22 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
         // Finally optimize the partition
         double qual = opt->optimize_partition(partition);
         // Prepare output
-        outputArgs[0] = mxCreateDoubleMatrix(1,(mwSize)G->vcount(), mxREAL);
+        outputArgs[0] = mxCreateDoubleMatrix(1, (mwSize)G->vcount(), mxREAL);
         double *memb = mxGetPr(outputArgs[0]);
         // Copy the membership vector to outputArgs[0] which has been already preallocated
-        for (int i = 0; i<N ; ++i)
-            memb[i] = static_cast<double>(partition->membership(i)+1);
+        for (int i = 0; i < N ; ++i)
+            memb[i] = static_cast<double>(partition->membership(i) + 1);
 
         // Copy the value of partition quality
         outputArgs[1] = mxCreateDoubleScalar(qual);
-
+        cout << "==============" << endl;
+        cout << partition->membership() << endl;
+        cout << "==============" << endl;
         // Cleanup the memory (follow this order)
         delete opt;
         delete partition;
         delete G;
+        #endif
     }
     catch (std::exception &e)
     {
