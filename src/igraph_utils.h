@@ -6,6 +6,9 @@
 #include <sstream>
 #include <fstream>
 #include <vector>
+#include <algorithm>
+#include <iterator>
+
 
 #define IGRAPH_TRY(call){\
     int __result = call;\
@@ -26,5 +29,15 @@
 void igraph_matrix_view(igraph_matrix_t *A, igraph_real_t *data, int nrows, int ncols);
 
 std::vector<double> read_adj_matrix(const std::string &filename);
+
+// Vector pretty printer
+template<typename T>
+std::ostream & operator<<(std::ostream & os, std::vector<T> vec)
+{
+    os<<"[ ";
+    std::copy(vec.begin(), vec.end(), std::ostream_iterator<T>(os, " "));
+    os<<"]";
+    return os;
+}
 
 #endif

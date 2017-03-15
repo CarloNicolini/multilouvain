@@ -1,10 +1,14 @@
 #include <iostream>
 #include <fstream>
 #include <Eigen/Core>
-#include "ModularityVertexPartition.h"
 #include "GraphHelper.h"
 #include "Optimiser.h"
 #include "igraph_utils.h"
+
+#include "Optimiser.h"
+#include "MutableVertexPartition.h"
+#include "SurpriseVertexPartition.h"
+
 
 using namespace std;
 
@@ -111,13 +115,20 @@ int main(int argc, char *argv[])
     igraph_vector_view(&igedges_list, edges_list.data(), edges_list.size());
     igraph_t IG;
     IGRAPH_TRY(igraph_create(&IG, &igedges_list, 0, 0));
-    // cout << "=========" << endl;
-    // cerr << "G=(V,E)=" << igraph_vcount(&IG) << " " << igraph_ecount(&IG) << endl;
-    //Graph *G  = new Graph(&IG,edges_weights);
-    //cerr << G->ecount() << endl;
-    //delete G;
 
-    igraph_vector_destroy(&igedges_list);
+    Graph *G = new Graph(&IG);
+    
+    Optimiser* opt = new Optimiser();
+    opt->consider_comms = Optimiser::ALL_NEIGH_COMMS;
+    opt->random_order = true;
+    MutableVertexPartition* partition = new SurpriseVertexPartition(G);
+    opt->optimize_partition(partition);
+    cerr << partition->quality() << endl;
+    cerr << partition->membership() << endl;
+    delete opt;
+    delete partition;
+    delete G;
+    igraph_destroy(&IG);
     return 0;
 }
 

@@ -1,4 +1,5 @@
 #include "GraphHelper.h"
+#include <Eigen/Core>
 
 #ifdef DEBUG
 using std::cerr;
@@ -8,7 +9,7 @@ using std::endl;
 vector<size_t> range(size_t n)
 {
     vector<size_t> range_vec(n);
-    for(size_t i = 0; i<n; i++)
+    for (size_t i = 0; i < n; i++)
         range_vec[i] = i;
     return range_vec;
 }
@@ -20,9 +21,9 @@ double KL(double q, double p)
 {
     double KL = 0.0;
     if (q > 0.0 && p > 0.0)
-        KL += q*log(q/p);
+        KL += q * log(q / p);
     if (q < 1.0 && p < 1.0)
-        KL += (1.0-q)*log((1.0-q)/(1.0-p));
+        KL += (1.0 - q) * log((1.0 - q) / (1.0 - p));
     return KL;
 }
 
@@ -127,13 +128,13 @@ Graph::Graph(igraph_t* graph, const vector<double> &edge_weights)
     this->set_default_node_size();
     this->init_admin();
     this->set_self_weights();
-/*
-    igraph_adjlist_t adjlist;
-    igraph_neimode_t mode = IGRAPH_TOTAL;
-    igraph_adjlist_init(_graph,&adjlist,mode);
-    igraph_adjlist_print(&adjlist);
-    igraph_adjlist_destroy(&adjlist);
-*/
+    /*
+        igraph_adjlist_t adjlist;
+        igraph_neimode_t mode = IGRAPH_TOTAL;
+        igraph_adjlist_init(_graph,&adjlist,mode);
+        igraph_adjlist_print(&adjlist);
+        igraph_adjlist_destroy(&adjlist);
+    */
 }
 
 Graph::Graph(igraph_t* graph, int correct_self_loops)
@@ -163,6 +164,109 @@ Graph::Graph()
     this->_remove_graph = true;
     this->set_defaults();
     this->_is_weighted = false;
+    this->init_admin();
+    this->set_self_weights();
+}
+
+void Graph::init(double *W, int N, int M)
+{
+    Eigen::MatrixXd EW = Eigen::Map<Eigen::MatrixXd>(W, N, M); //check N,M rows or cols
+    bool feedingSparseMatrix = false;
+    if (N > 3 && M == 3)
+    {
+        feedingSparseMatrix = true;
+    }
+
+    vector<double> edges_weights(0);
+    vector<double> edges_list(0);
+    if (feedingSparseMatrix) // the input matrix is a sparse matrix with 2 or 3 columns. If 2 columns the edges list is given, if 3 columns the third column is the edge weight
+    {
+        Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> B1, B2;
+        B1 = (EW.col(0).array() >= EW.col(1).array()).cast<int>();
+        B2 = (EW.col(0).array() < EW.col(1).array()).cast<int>();
+        bool isUpperTriangular = false;
+        bool isLowerTriangular = false;
+        bool isSymmetric = false;
+        int sum1 = B1.sum();
+        int sum2 = B2.sum();
+        // Condizione semplice da verificare facendo [i j w]=find(A), oppure [i j w]=find(triu(A)) oppure [i j w]=find(tril(A))
+        if (sum1 == sum2)
+            isSymmetric = true;
+        if (sum1 == 0 && sum2 == M)
+            isUpperTriangular = true;
+        if (sum1 == M && sum2 == 0)
+            isLowerTriangular = true;
+
+        if (!isSymmetric && !isUpperTriangular && !isLowerTriangular)
+        {
+            throw Exception("Matrix is not symmetric, nor triangular lower or upper triangular. Check diagonal and non symmetric values.");
+        }
+
+        for (int l = 0; l < M; ++l)
+        {
+            double row_node = EW(l, 0); //index of row from MATLAB find command
+            double column_node = EW(l, 1); //index of column from MATLAB find command
+            double w = EW(l, 2);
+            if ( isUpperTriangular || isLowerTriangular) // keeps only symmetric and also avoid self-loops (implicitly inserting upper triangular)
+            {
+                edges_list.push_back(column_node - 1);
+                edges_list.push_back(row_node - 1);
+                edges_weights.push_back(w);
+            }
+            else if (isSymmetric)
+            {
+                if (row_node < column_node)
+                {
+                    edges_list.push_back(column_node - 1);
+                    edges_list.push_back(row_node - 1);
+                    edges_weights.push_back(w);
+                }
+            }
+        }
+    }
+    else // the input matrix is square adjacency matrix
+    {
+        if (EW.trace() > 0)
+        {
+            throw Exception("Adjacency matrix has self loops, only simple graphs allowed.");
+        }
+        for (int i = 0; i < N; ++i)
+        {
+            for (int j = i + 1; j < N; j++)
+            {
+                double w = std::max(EW.coeffRef(i, j), EW.coeffRef(j, i));
+                if (w > 0)
+                {
+                    edges_list.push_back(i);
+                    edges_list.push_back(j);
+                    edges_weights.push_back(w);
+                }
+                if (w < 0)
+                {
+                    throw Exception("Negative edge weight found. Only positive weights supported.");
+                }
+            }
+        }
+    }
+
+    if (edges_list.empty())
+        throw Exception("Empty graph provided.");
+
+
+    // Create the Graph object from the igraph data structure
+    // Fill the edges into the igraph IG
+    igraph_t IG;
+    igraph_vector_t igedges_list;
+    igraph_vector_view(&igedges_list, edges_list.data(), edges_list.size());
+    igraph_create(&IG, &igedges_list, 0, 0);
+
+    this->_graph = &IG;
+    this->_remove_graph = false;
+    if (edges_weights.size() != this->ecount())
+        throw Exception("Edge weights vector inconsistent length with the edge count of the graph.");
+    this->_edge_weights = edges_weights;
+    this->_is_weighted = true;
+    this->set_default_node_size();
     this->init_admin();
     this->set_self_weights();
 }
@@ -319,14 +423,14 @@ void Graph::init_admin()
 
     double normalise = 0.0;
     if (this->_correct_self_loops)
-        normalise = n_size*n_size;
+        normalise = n_size * n_size;
     else
-        normalise = n_size*(n_size - 1);
+        normalise = n_size * (n_size - 1);
 
     if (this->is_directed())
-        this->_density = w/normalise;
+        this->_density = w / normalise;
     else
-        this->_density = 2*w/normalise;
+        this->_density = 2 * w / normalise;
 }
 
 double Graph::weight_tofrom_community(size_t v, size_t comm, vector<size_t>* membership, igraph_neimode_t mode)
@@ -422,7 +526,7 @@ Graph::get_neighbours(size_t v, igraph_neimode_t mode)
  ********************************************************************************/
 size_t Graph::get_random_neighbour(size_t v, igraph_neimode_t mode)
 {
-    size_t node=v;
+    size_t node = v;
     size_t rand_neigh = -1;
 
     if (this->degree(v, mode) <= 0)
@@ -434,7 +538,7 @@ size_t Graph::get_random_neighbour(size_t v, igraph_neimode_t mode)
         {
             // Get indices of where neighbours are
             size_t cum_degree_this_node = (size_t) VECTOR(this->_graph->os)[node];
-            size_t cum_degree_next_node = (size_t) VECTOR(this->_graph->os)[node+1];
+            size_t cum_degree_next_node = (size_t) VECTOR(this->_graph->os)[node + 1];
             // Get a random index from them
             size_t rand_neigh_idx = igraph_rng_get_integer(igraph_rng_default(), cum_degree_this_node, cum_degree_next_node - 1);
             // Return the neighbour at that index
@@ -447,7 +551,7 @@ size_t Graph::get_random_neighbour(size_t v, igraph_neimode_t mode)
         {
             // Get indices of where neighbours are
             size_t cum_degree_this_node = (size_t) VECTOR(this->_graph->is)[node];
-            size_t cum_degree_next_node = (size_t) VECTOR(this->_graph->is)[node+1];
+            size_t cum_degree_next_node = (size_t) VECTOR(this->_graph->is)[node + 1];
             // Get a random index from them
             size_t rand_neigh_idx = igraph_rng_get_integer(igraph_rng_default(), cum_degree_this_node, cum_degree_next_node - 1);
 #ifdef DEBUG
@@ -463,8 +567,8 @@ size_t Graph::get_random_neighbour(size_t v, igraph_neimode_t mode)
         size_t cum_outdegree_this_node = (size_t)VECTOR(this->_graph->os)[node];
         size_t cum_indegree_this_node  = (size_t)VECTOR(this->_graph->is)[node];
 
-        size_t cum_outdegree_next_node = (size_t)VECTOR(this->_graph->os)[node+1];
-        size_t cum_indegree_next_node  = (size_t)VECTOR(this->_graph->is)[node+1];
+        size_t cum_outdegree_next_node = (size_t)VECTOR(this->_graph->os)[node + 1];
+        size_t cum_indegree_next_node  = (size_t)VECTOR(this->_graph->is)[node + 1];
 
         size_t total_outdegree = cum_outdegree_next_node - cum_outdegree_this_node;
         size_t total_indegree = cum_indegree_next_node - cum_indegree_this_node;
@@ -539,7 +643,7 @@ Graph* Graph::collapse_graph(MutableVertexPartition* partition)
     vector<double> collapsed_weights(m_collapsed, 0.0);
     double total_collapsed_weight = 0.0;
 
-    igraph_vector_init(&edges, 2*m_collapsed); // Vector or edges with edges (edge[0], edge[1]), (edge[2], edge[3]), etc...
+    igraph_vector_init(&edges, 2 * m_collapsed); // Vector or edges with edges (edge[0], edge[1]), (edge[2], edge[3]), etc...
 
     size_t e_idx = 0;
     for (size_t v = 0; v < n_collapsed; v++)
@@ -549,8 +653,8 @@ Graph* Graph::collapse_graph(MutableVertexPartition* partition)
         {
             size_t u = itr->first;
             double w = itr->second;
-            VECTOR(edges)[2*e_idx] = v;
-            VECTOR(edges)[2*e_idx+1] = u;
+            VECTOR(edges)[2 * e_idx] = v;
+            VECTOR(edges)[2 * e_idx + 1] = u;
             collapsed_weights[e_idx] = w;
             total_collapsed_weight += w;
             if (e_idx >= m_collapsed)
