@@ -57,59 +57,35 @@ int main(int argc, char *argv[])
     // Fill the adjacency matrix of the graph
     Eigen::MatrixXd A = read_adj_matrix(std::string(argv[1]));
 
-    int N=A.rows();
-    igraph_matrix_t adj;
-    igraph_matrix_view(&adj,A.data(),N,N);
-
-    vector<double> edge_weights;
-    for (int i=0; i<N; ++i)
-    {
-        for (int j=i+1; j<N; j++)
-        {
-            double w = A(i,j);
-            if (w>0)
-                edge_weights.push_back(w);
-        }
-    }
-
-    // Create the graph from the adjacency matrix
-    igraph_t graph;
-    igraph_weighted_adjacency(&graph,&adj,IGRAPH_ADJ_UNDIRECTED,NULL,true);
-
+    
     // Create the Graph helper object specifying edge weights too
-    Graph *G;
-    try
-    {
-        G  = new Graph(&graph,edge_weights);
-    }
-    catch (Exception &e)
-    {
-        throw e.what();
-    }
-
-    // Create the partition function
-    MutableVertexPartition *partition;
-
-    size_t im[6]={0,0,0,1,1,1};
-    vector<size_t> memb(im,im+6);
-
-    partition = new ModularityVertexPartition(G,memb);
-
-    double Qold = partition->quality();
-    double delta = partition->diff_move(3,0);
-    partition->move_node(3,0);
-    cerr << "===========" << endl;
-    double Qnew = partition->quality();
-    cerr << "Delta=" << delta << " Qnew-qold=" << Qnew-Qold << endl;
-
-    Qold = partition->quality();
-    delta = partition->diff_move(4,0);
-    partition->move_node(4,0);
-    cerr << "===========" << endl;
-    Qnew = partition->quality();
-    cerr << "Delta=" << delta << " Qnew-qold=" << Qnew-Qold << endl;
-
-    delete partition;
+    Graph *G = init(A.data(),A.rows(),A.cols());
+    
     delete G;
     return 0;
+
+    // // Create the partition function
+    // MutableVertexPartition *partition;
+
+    // vector<size_t> memb(34);
+
+    // partition = new ModularityVertexPartition(G,memb);
+
+    // double Qold = partition->quality();
+    // double delta = partition->diff_move(3,0);
+    // partition->move_node(3,0);
+    // cerr << "===========" << endl;
+    // double Qnew = partition->quality();
+    // cerr << "Delta=" << delta << " Qnew-qold=" << Qnew-Qold << endl;
+
+    // Qold = partition->quality();
+    // delta = partition->diff_move(4,0);
+    // partition->move_node(4,0);
+    // cerr << "===========" << endl;
+    // Qnew = partition->quality();
+    // cerr << "Delta=" << delta << " Qnew-qold=" << Qnew-Qold << endl;
+
+    // delete partition;
+    // delete G;
+    // return 0;
 }

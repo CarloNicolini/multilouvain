@@ -49,6 +49,7 @@ private:
 
 };
 
+
 class Graph
 {
 public:
@@ -63,7 +64,6 @@ public:
     Graph();
     ~Graph();
 
-    void init(double *W, int n, int m);
 
     Graph* collapse_graph(MutableVertexPartition* partition);
 
@@ -198,6 +198,8 @@ private:
     void set_self_weights();
 
 };
+
+Graph* init(double *W, int n, int m);
 
 // We need this ugly way to include the MutableVertexPartition
 // to overcome a circular linkage problem.

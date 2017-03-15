@@ -168,109 +168,6 @@ Graph::Graph()
     this->set_self_weights();
 }
 
-void Graph::init(double *W, int N, int M)
-{
-    Eigen::MatrixXd EW = Eigen::Map<Eigen::MatrixXd>(W, N, M); //check N,M rows or cols
-    bool feedingSparseMatrix = false;
-    if (N > 3 && M == 3)
-    {
-        feedingSparseMatrix = true;
-    }
-
-    vector<double> edges_weights(0);
-    vector<double> edges_list(0);
-    if (feedingSparseMatrix) // the input matrix is a sparse matrix with 2 or 3 columns. If 2 columns the edges list is given, if 3 columns the third column is the edge weight
-    {
-        Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> B1, B2;
-        B1 = (EW.col(0).array() >= EW.col(1).array()).cast<int>();
-        B2 = (EW.col(0).array() < EW.col(1).array()).cast<int>();
-        bool isUpperTriangular = false;
-        bool isLowerTriangular = false;
-        bool isSymmetric = false;
-        int sum1 = B1.sum();
-        int sum2 = B2.sum();
-        // Condizione semplice da verificare facendo [i j w]=find(A), oppure [i j w]=find(triu(A)) oppure [i j w]=find(tril(A))
-        if (sum1 == sum2)
-            isSymmetric = true;
-        if (sum1 == 0 && sum2 == M)
-            isUpperTriangular = true;
-        if (sum1 == M && sum2 == 0)
-            isLowerTriangular = true;
-
-        if (!isSymmetric && !isUpperTriangular && !isLowerTriangular)
-        {
-            throw Exception("Matrix is not symmetric, nor triangular lower or upper triangular. Check diagonal and non symmetric values.");
-        }
-
-        for (int l = 0; l < M; ++l)
-        {
-            double row_node = EW(l, 0); //index of row from MATLAB find command
-            double column_node = EW(l, 1); //index of column from MATLAB find command
-            double w = EW(l, 2);
-            if ( isUpperTriangular || isLowerTriangular) // keeps only symmetric and also avoid self-loops (implicitly inserting upper triangular)
-            {
-                edges_list.push_back(column_node - 1);
-                edges_list.push_back(row_node - 1);
-                edges_weights.push_back(w);
-            }
-            else if (isSymmetric)
-            {
-                if (row_node < column_node)
-                {
-                    edges_list.push_back(column_node - 1);
-                    edges_list.push_back(row_node - 1);
-                    edges_weights.push_back(w);
-                }
-            }
-        }
-    }
-    else // the input matrix is square adjacency matrix
-    {
-        if (EW.trace() > 0)
-        {
-            throw Exception("Adjacency matrix has self loops, only simple graphs allowed.");
-        }
-        for (int i = 0; i < N; ++i)
-        {
-            for (int j = i + 1; j < N; j++)
-            {
-                double w = std::max(EW.coeffRef(i, j), EW.coeffRef(j, i));
-                if (w > 0)
-                {
-                    edges_list.push_back(i);
-                    edges_list.push_back(j);
-                    edges_weights.push_back(w);
-                }
-                if (w < 0)
-                {
-                    throw Exception("Negative edge weight found. Only positive weights supported.");
-                }
-            }
-        }
-    }
-
-    if (edges_list.empty())
-        throw Exception("Empty graph provided.");
-
-
-    // Create the Graph object from the igraph data structure
-    // Fill the edges into the igraph IG
-    igraph_t IG;
-    igraph_vector_t igedges_list;
-    igraph_vector_view(&igedges_list, edges_list.data(), edges_list.size());
-    igraph_create(&IG, &igedges_list, 0, 0);
-
-    this->_graph = &IG;
-    this->_remove_graph = false;
-    if (edges_weights.size() != this->ecount())
-        throw Exception("Edge weights vector inconsistent length with the edge count of the graph.");
-    this->_edge_weights = edges_weights;
-    this->_is_weighted = true;
-    this->set_default_node_size();
-    this->init_admin();
-    this->set_self_weights();
-}
-
 Graph::~Graph()
 {
     if (this->_remove_graph)
@@ -611,7 +508,7 @@ Graph* Graph::collapse_graph(MutableVertexPartition* partition)
 #ifdef DEBUG
     cerr << "Graph* Graph::collapse_graph(vector<size_t> membership)" << endl;
 #endif
-    size_t n = this->vcount();
+    //size_t n = this->vcount();
     size_t m = this->ecount();
 
     vector< map<size_t, double> > collapsed_edge_weights(partition->nb_communities());
@@ -686,5 +583,102 @@ Graph* Graph::collapse_graph(MutableVertexPartition* partition)
 #ifdef DEBUG
     cerr << "exit Graph::collapse_graph(vector<size_t> membership)" << endl << endl;
 #endif
+    return G;
+}
+
+// ##############################################
+Graph * init(double *W, int N, int M)
+{
+    Eigen::MatrixXd EW = Eigen::Map<Eigen::MatrixXd>(W, N, M); //check N,M rows or cols
+    bool feedingSparseMatrix = false;
+    if (N > 3 && M == 3)
+    {
+        feedingSparseMatrix = true;
+    }
+
+    vector<double> edges_weights(0);
+    vector<double> edges_list(0);
+    if (feedingSparseMatrix) // the input matrix is a sparse matrix with 2 or 3 columns. If 2 columns the edges list is given, if 3 columns the third column is the edge weight
+    {
+        Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> B1, B2;
+        B1 = (EW.col(0).array() >= EW.col(1).array()).cast<int>();
+        B2 = (EW.col(0).array() < EW.col(1).array()).cast<int>();
+        bool isUpperTriangular = false;
+        bool isLowerTriangular = false;
+        bool isSymmetric = false;
+        int sum1 = B1.sum();
+        int sum2 = B2.sum();
+        // Condizione semplice da verificare facendo [i j w]=find(A), oppure [i j w]=find(triu(A)) oppure [i j w]=find(tril(A))
+        if (sum1 == sum2)
+            isSymmetric = true;
+        if (sum1 == 0 && sum2 == M)
+            isUpperTriangular = true;
+        if (sum1 == M && sum2 == 0)
+            isLowerTriangular = true;
+
+        if (!isSymmetric && !isUpperTriangular && !isLowerTriangular)
+        {
+            throw Exception("Matrix is not symmetric, nor triangular lower or upper triangular. Check diagonal and non symmetric values.");
+        }
+
+        for (int l = 0; l < M; ++l)
+        {
+            double row_node = EW(l, 0); //index of row from MATLAB find command
+            double column_node = EW(l, 1); //index of column from MATLAB find command
+            double w = EW(l, 2);
+            if ( isUpperTriangular || isLowerTriangular) // keeps only symmetric and also avoid self-loops (implicitly inserting upper triangular)
+            {
+                edges_list.push_back(column_node - 1);
+                edges_list.push_back(row_node - 1);
+                edges_weights.push_back(w);
+            }
+            else if (isSymmetric)
+            {
+                if (row_node < column_node)
+                {
+                    edges_list.push_back(column_node - 1);
+                    edges_list.push_back(row_node - 1);
+                    edges_weights.push_back(w);
+                }
+            }
+        }
+    }
+    else // the input matrix is square adjacency matrix
+    {
+        if (EW.trace() > 0)
+        {
+            throw Exception("Adjacency matrix has self loops, only simple graphs allowed.");
+        }
+        for (int i = 0; i < N; ++i)
+        {
+            for (int j = i + 1; j < N; j++)
+            {
+                double w = std::max(EW.coeffRef(i, j), EW.coeffRef(j, i));
+                if (w > 0)
+                {
+                    edges_list.push_back(i);
+                    edges_list.push_back(j);
+                    edges_weights.push_back(w);
+                }
+                if (w < 0)
+                {
+                    throw Exception("Negative edge weight found. Only positive weights supported.");
+                }
+            }
+        }
+    }
+
+    if (edges_list.empty())
+        throw Exception("Empty graph provided.");
+
+    // Create the Graph object from the igraph data structure
+    // Fill the edges into the igraph IG
+    igraph_t IG;
+    igraph_vector_t igedges_list;
+    igraph_vector_view(&igedges_list, edges_list.data(), edges_list.size());
+    igraph_create(&IG, &igedges_list, 0, 0);
+
+    Graph *G = new Graph(&IG, edges_weights);
+    igraph_destroy(&IG);
     return G;
 }
