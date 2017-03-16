@@ -34,6 +34,9 @@ include_directories(iglfind)
 
 add_library(LOUVAIN SHARED ${LOUVAIN_SRCS} ${LOUVAIN_HDRS})
 target_link_libraries(LOUVAIN ${IGRAPH_LIBRARIES})
+if (MATLAB_SUPPORT)
+    target_link_libraries(LOUVAIN ${MATLAB_LIBRARIES} ${MATLAB_LIBRARIES_EXTRA})
+endif()
 
 add_executable(test_multilouvain test_multilouvain.cpp)
 target_link_libraries(test_multilouvain LOUVAIN )

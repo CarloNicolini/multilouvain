@@ -78,14 +78,14 @@ if (WIN32)
   set(_MATLAB_REGKEYS)
   foreach(m_minor RANGE 31 0 -1)
     list(APPEND _MATLAB_REGKEYS
-      "[HKEY_LOCAL_MACHINE\\SOFTWARE\\MathWorks\\MATLAB\\7.${m_minor};MATLABROOT]" 
+      "[HKEY_LOCAL_MACHINE\\SOFTWARE\\MathWorks\\MATLAB\\7.${m_minor};MATLABROOT]"
     )
   endforeach()
-  
+
   # get_filename_component doesn't handle the Wow6432Node registry issues, but find_* do
-  find_path(MATLAB_BIN_DIR "matlab.exe" 
+  find_path(MATLAB_BIN_DIR "matlab.exe"
     HINTS ${_MATLAB_REGKEYS}
-    PATH_SUFFIXES "bin" 
+    PATH_SUFFIXES "bin"
     DOC "Matlab binaries directory for Windows")
   if(MATLAB_BIN_DIR)
     # The root directory is just the parent of this path
@@ -93,7 +93,7 @@ if (WIN32)
     set(_MATLAB_SEARCH_WIN HINTS ${_MATLAB_WIN_ROOT})
     list(APPEND _MATLAB_SEARCHES _MATLAB_SEARCH_WIN)
   endif()
-    
+
   mark_as_advanced(MATLAB_BIN_DIR)
 else()
   set(_MATLAB_UNIX_PATHS)
@@ -119,6 +119,7 @@ else()
     $ENV{HOME}/redhat-matlab/
     /opt/matlab/
     /usr/local/matlab/
+    /usr/local/MATLAB/
     $ENV{MATLABROOT}
   )
 
@@ -166,7 +167,7 @@ if(MSVC)
     set(_MATLABLIB extern/lib/win32/microsoft)
     set(MATLAB_MEX_EXT "mexw32")
   endif()
-  
+
 elseif(UNIX)
 
   if(CMAKE_SIZEOF_VOID_P EQUAL 4)
@@ -190,9 +191,9 @@ elseif(UNIX)
       set(MATLAB_MEX_EXT "mexmaci64")
     endif()
   endif()
-  
+
   set(_MATLABLIB bin/${_MATLAB_ARCH})
-  
+
   # Matlab doesn't support universal binaries. We build both architectures
   # if Matlab provides both 64-bit and 32-bit libraries as separate targets.
   # Note that as of Matlab 2011, 32-bit Macs are no longer supported.
@@ -250,7 +251,7 @@ foreach(search ${_MATLAB_SEARCHES})
   find_path(MATLAB_INCLUDE_DIR "mex.h" ${${search}}
     PATH_SUFFIXES extern/include
     DOC "Matlab mex include file")
-    
+
    # Find the basic mex libraries
   find_library(MATLAB_MX_LIBRARY  NAMES mx libmx
     ${${search}} PATH_SUFFIXES ${_MATLABLIB})
@@ -258,23 +259,25 @@ foreach(search ${_MATLAB_SEARCHES})
     ${${search}} PATH_SUFFIXES ${_MATLABLIB})
   find_library(MATLAB_MAT_LIBRARY NAMES mat libmat
     ${${search}} PATH_SUFFIXES ${_MATLABLIB})
-    
+  find_library(MATLAB_UT_LIBRARY NAMES ut libut
+    ${${search}} PATH_SUFFIXES ${_MATLABLIB})
+
   # Also find the extra stuff if building both architectures on the mac
   if (MATLAB_UNIVERSAL)
-    find_library(MATLAB_MX_LIBRARY_EXTRA  NAMES mx libmx 
+    find_library(MATLAB_MX_LIBRARY_EXTRA  NAMES mx libmx
       ${${search}} PATH_SUFFIXES ${MATLABLIB_EXTRA})
     find_library(MATLAB_MEX_LIBRARY_EXTRA NAMES mex libmex
       ${${search}} PATH_SUFFIXES ${MATLABLIB_EXTRA})
     find_library(MATLAB_MAT_LIBRARY_EXTRA NAMES mat libmat
       ${${search}} PATH_SUFFIXES ${MATLABLIB_EXTRA})
-      
+
     list(APPEND _MATLAB_EXTRA_VARS
       MATLAB_MX_LIBRARY_EXTRA
       MATLAB_MEX_LIBRARY_EXTRA
       MATLAB_MAT_LIBRARY_EXTRA
     )
   endif()
-  
+
   # Unix-specific files
   if(UNIX)
     find_file(MATLAB_MEX_MAPFILE mexFunction.map
@@ -282,7 +285,7 @@ foreach(search ${_MATLAB_SEARCHES})
       DOC "gcc version script for mex files"
     )
     list(APPEND _MATLAB_EXTRA_VARS MATLAB_MEX_MAPFILE)
-    
+
     if (MATLAB_UNIVERSAL)
       set(MATLABLIB_EXTRA bin/${_MATLAB_ARCH_EXTRA})
       find_file(MATLAB_MEX_MAPFILE_EXTRA mexFunction.map
@@ -304,7 +307,7 @@ endforeach()
 
 
 _MATLAB_DBG_MSG("Matlab extra variables: \"${_MATLAB_EXTRA_VARS}\"")
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(Matlab DEFAULT_MSG 
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(Matlab DEFAULT_MSG
   MATLAB_INCLUDE_DIR
   MATLAB_MX_LIBRARY
   MATLAB_MEX_LIBRARY
@@ -324,7 +327,7 @@ if(MATLAB_FOUND)
   set(MATLAB_INCLUDE_DIRS ${MATLAB_INCLUDE_DIR})
   message(STATUS "MATLAB include directory: ${MATLAB_INCLUDE_DIRS}")
   set(MATLAB_LIBRARIES
-    ${MATLAB_MX_LIBRARY} ${MATLAB_MEX_LIBRARY} ${MATLAB_MAT_LIBRARY})
+    ${MATLAB_MX_LIBRARY} ${MATLAB_MEX_LIBRARY} ${MATLAB_MAT_LIBRARY} ${MATLAB_UT_LIBRARY})
   if (MATLAB_UNIVERSAL)
     set(MATLAB_LIBRARIES_EXTRA
       ${MATLAB_MX_LIBRARY_EXTRA} ${MATLAB_MEX_LIBRARY_EXTRA}

@@ -1,5 +1,9 @@
-#include "GraphHelper.h"
 #include <Eigen/Core>
+#include "GraphHelper.h"
+
+#ifdef MATLAB_SUPPORT
+#include "mexInterrupt.h"
+#endif
 
 #ifdef DEBUG
 using std::cerr;
@@ -518,6 +522,9 @@ Graph* Graph::collapse_graph(MutableVertexPartition* partition)
     igraph_integer_t v, u;
     for (size_t e = 0; e < m; e++)
     {
+#ifdef MATLAB_SUPPORT
+            ctrlcCheckPoint(__FILE__, __LINE__); // Interrupt here
+#endif
         double w = this->edge_weight(e);
         igraph_edge(this->_graph, e, &v, &u);
         size_t v_comm = partition->membership((size_t)v);
@@ -547,6 +554,9 @@ Graph* Graph::collapse_graph(MutableVertexPartition* partition)
     size_t e_idx = 0;
     for (size_t v = 0; v < n_collapsed; v++)
     {
+#ifdef MATLAB_SUPPORT
+            ctrlcCheckPoint(__FILE__, __LINE__); // Interrupt here
+#endif
         for (map<size_t, double>::iterator itr = collapsed_edge_weights[v].begin();
                 itr != collapsed_edge_weights[v].end(); itr++)
         {
@@ -651,6 +661,9 @@ Graph * init(double *W, int N, int M)
         }
         for (int i = 0; i < N; ++i)
         {
+#ifdef MATLAB_SUPPORT
+            ctrlcCheckPoint(__FILE__, __LINE__); // Interrupt here
+#endif
             for (int j = i + 1; j < N; j++)
             {
                 double w = std::max(EW.coeffRef(i, j), EW.coeffRef(j, i));

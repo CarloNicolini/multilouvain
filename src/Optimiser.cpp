@@ -1,5 +1,8 @@
 #include "Optimiser.h"
 
+#ifdef MATLAB_SUPPORT
+#include "mexInterrupt.h"
+#endif
 /****************************************************************************
   Create a new Optimiser object
 
@@ -91,6 +94,9 @@ double Optimiser::optimize_partition(MutableVertexPartition* partition)
     // As long as there remains improvement iterate
     while (improv > this->eps)
     {
+#ifdef MATLAB_SUPPORT
+            ctrlcCheckPoint(__FILE__, __LINE__); // Interrupt here
+#endif
         // First collapse graph (i.e. community graph)
         collapsed_graph = graph->collapse_graph(partition);
 
