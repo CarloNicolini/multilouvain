@@ -348,13 +348,13 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
 
     // Try to understand the type of the matrix if sparse or not
     // Get number of vertices in the network
-    int N = mxGetN(inputArgs[0]); // number of columns
-    int M = mxGetM(inputArgs[0]); // number of rows
+    int ncols = mxGetN(inputArgs[0]); // number of columns
+    int nrows = mxGetM(inputArgs[0]); // number of rows
     double *W = mxGetPr(inputArgs[0]);
     
     try
     {
-        Graph *G = init(W, N, M);
+        Graph *G = init(W, nrows, ncols);
         // Now that the Graph has been built it's time to run the solver.
         // Create the partition function
         MutableVertexPartition *partition;
@@ -364,36 +364,36 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
         // Allocate partition method and optimization
         switch ( pars.quality )
         {
-        case MethodSurprise:
-        {
-            partition = new SurpriseVertexPartition(G);
-            break;
-        }
-        case MethodSignificance:
-        {
-            partition = new SignificanceVertexPartition(G);
-            break;
-        }
-        case MethodRBER:
-        {
-            partition = new RBERVertexPartition(G);
-            break;
-        }
-        case MethodRBConfiguration:
-        {
-            partition = new RBConfigurationVertexPartition(G);
-            break;
-        }
-        case MethodCPM:
-        {
-            partition = new CPMVertexPartition(G, pars.cpmgamma);
-            break;
-        }
-        case MethodModularity:
-        {
-            partition = new ModularityVertexPartition(G);
-            break;
-        }
+            case MethodSurprise:
+            {
+                partition = new SurpriseVertexPartition(G);
+                break;
+            }
+            case MethodSignificance:
+            {
+                partition = new SignificanceVertexPartition(G);
+                break;
+            }
+            case MethodRBER:
+            {
+                partition = new RBERVertexPartition(G);
+                break;
+            }
+            case MethodRBConfiguration:
+            {
+                partition = new RBConfigurationVertexPartition(G);
+                break;
+            }
+            case MethodCPM:
+            {
+                partition = new CPMVertexPartition(G, pars.cpmgamma);
+                break;
+            }
+            case MethodModularity:
+            {
+                partition = new ModularityVertexPartition(G);
+                break;
+            }
         }
 
         // Set optimization things
@@ -409,7 +409,7 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
         outputArgs[0] = mxCreateDoubleMatrix(1, (mwSize)G->vcount(), mxREAL);
         double *memb = mxGetPr(outputArgs[0]);
         // Copy the membership vector to outputArgs[0] which has been already preallocated
-        for (int i = 0; i < N ; ++i)
+        for (int i = 0; i < ncols ; ++i)
             memb[i] = static_cast<double>(partition->membership(i) + 1);
 
         // Copy the value of partition quality

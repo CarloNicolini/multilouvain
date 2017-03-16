@@ -599,11 +599,11 @@ Graph* Graph::collapse_graph(MutableVertexPartition* partition)
 }
 
 // ##############################################
-Graph * init(double *W, int N, int M)
+Graph * init(double *adjmat, int nrows, int ncols) // adjmat can be both the adjacency matrix or a Nx3 vector with indices of nonzeros
 {
-    Eigen::MatrixXd EW = Eigen::Map<Eigen::MatrixXd>(W, N, M); //check N,M rows or cols
+    Eigen::MatrixXd EW = Eigen::Map<Eigen::MatrixXd>(adjmat, nrows, ncols); //check N,M rows or cols
     bool feedingSparseMatrix = false;
-    if (N > 3 && M == 3)
+    if (nrows > 3 && ncols == 3)
     {
         feedingSparseMatrix = true;
     }
@@ -622,16 +622,16 @@ Graph * init(double *W, int N, int M)
         // Condizione semplice da verificare facendo [i j w]=find(A), oppure [i j w]=find(triu(A)) oppure [i j w]=find(tril(A))
         if (sum1 == sum2)
             isSymmetric = true;
-        if (sum1 == 0 && sum2 == M)
+        if (sum1 == 0 && sum2 == nrows)
             isUpperTriangular = true;
-        if (sum1 == M && sum2 == 0)
+        if (sum1 == nrows && sum2 == 0)
             isLowerTriangular = true;
 
         if (!isSymmetric && !isUpperTriangular && !isLowerTriangular)
         {
             throw Exception("Matrix is not symmetric, nor triangular lower or upper triangular. Check diagonal and non symmetric values.");
         }
-        for (int l = 0; l < M; ++l)
+        for (int l = 0; l < nrows; ++l)
         {
             double row_node = EW(l, 0); //index of row from MATLAB find command
             double column_node = EW(l, 1); //index of column from MATLAB find command
@@ -659,12 +659,12 @@ Graph * init(double *W, int N, int M)
         {
             throw Exception("Adjacency matrix has self loops, only simple graphs allowed.");
         }
-        for (int i = 0; i < N; ++i)
+        for (int i = 0; i < ncols; ++i)
         {
 #ifdef MATLAB_SUPPORT
             ctrlcCheckPoint(__FILE__, __LINE__); // Interrupt here
 #endif
-            for (int j = i + 1; j < N; j++)
+            for (int j = i + 1; j < ncols; j++)
             {
                 double w = std::max(EW.coeffRef(i, j), EW.coeffRef(j, i));
                 if (w > 0)
@@ -689,7 +689,7 @@ Graph * init(double *W, int N, int M)
     igraph_t *IG = new igraph_t;
     igraph_vector_t igedges_list;
     igraph_vector_view(&igedges_list, edges_list.data(), edges_list.size());
-    igraph_create(IG, &igedges_list, std::max(N,M), 0);
+    igraph_create(IG, &igedges_list, 0, 0);
 
     Graph *G = new Graph(IG, edges_weights);
     

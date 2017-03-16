@@ -27,10 +27,13 @@ Eigen::MatrixXd read_adj_matrix(const std::string &filename)
     vector<vector<double> > data;
     string line;
 
+    int nRows=1;
+    int nCols=1;
     while(!std::getline(file, line, '\n').eof())
     {
         std::istringstream reader(line);
         vector<double> lineData;
+        nCols=0;
         while(!reader.eof())
         {
             double val;
@@ -38,13 +41,16 @@ Eigen::MatrixXd read_adj_matrix(const std::string &filename)
             if(reader.fail())
                 break;
             lineData.push_back(val);
+            nCols++;
         }
         data.push_back(lineData);
+        nRows++;
     }
+    nRows--;
     // Deep copy of data array to the adjacency matrix
-    adj_mat.setZero(data.size(),data.size());
-    for (unsigned int i=0; i<data.size(); ++i)
-        for (unsigned int j=0; j<data.size(); ++j)
+    adj_mat.setZero(nRows,nCols);
+    for (unsigned int i=0; i<nRows; ++i)
+        for (unsigned int j=0; j<nCols; ++j)
             adj_mat.coeffRef(i,j)=data[i][j];
 
     return adj_mat;
@@ -52,24 +58,26 @@ Eigen::MatrixXd read_adj_matrix(const std::string &filename)
 
 int main(int argc, char *argv[])
 {
-
+    srand(time(0));
     // Create the graph from the adjacency matrix
     // Fill the adjacency matrix of the graph
     Eigen::MatrixXd A = read_adj_matrix(std::string(argv[1]));
-
+    cout << A << endl;
     
     // Create the Graph helper object specifying edge weights too
     Graph *G = init(A.data(),A.rows(),A.cols());
+
+    // Create the partition function
+    MutableVertexPartition *partition = new ModularityVertexPartition(G);
+
+    Optimiser *opt = new Optimiser;
+    double qual = opt->optimize_partition(partition);
+
+    cout << "Q = " <<  qual/(156) << endl;
+    //cout << partition->membership() << endl;
+
     G->dispose();
     delete G;
-    return 0;
-
-    // // Create the partition function
-    // MutableVertexPartition *partition;
-
-    // vector<size_t> memb(34);
-
-    // partition = new ModularityVertexPartition(G,memb);
 
     // double Qold = partition->quality();
     // double delta = partition->diff_move(3,0);

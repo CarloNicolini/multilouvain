@@ -205,7 +205,7 @@ private:
 
 };
 
-Graph* init(double *W, int n, int m);
+Graph* init(double *adjmat, int nrows, int ncols);
 
 // We need this ugly way to include the MutableVertexPartition
 // to overcome a circular linkage problem.
