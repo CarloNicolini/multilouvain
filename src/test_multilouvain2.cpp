@@ -74,7 +74,9 @@ int main(int argc, char *argv[])
     double qual = opt->optimize_partition(partition);
 
     cout << "Q = " <<  qual/(156) << endl;
-    //cout << partition->membership() << endl;
+    for (int i=0; i<partition->membership().size(); ++i)
+        cout << partition->membership(i) << " ";
+    cout << endl;
 
     G->dispose();
     delete G;

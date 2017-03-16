@@ -409,7 +409,7 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
         outputArgs[0] = mxCreateDoubleMatrix(1, (mwSize)G->vcount(), mxREAL);
         double *memb = mxGetPr(outputArgs[0]);
         // Copy the membership vector to outputArgs[0] which has been already preallocated
-        for (int i = 0; i < ncols ; ++i)
+        for (int i = 0; i < G->vcount() ; ++i)
             memb[i] = static_cast<double>(partition->membership(i) + 1);
 
         // Copy the value of partition quality
