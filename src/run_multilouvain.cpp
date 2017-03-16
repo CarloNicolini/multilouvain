@@ -196,7 +196,7 @@ int main(int argc, char *argv[])
     Eigen::MatrixXd W = read_adj_matrix<Eigen::MatrixXd>(params.filename,' ');
 
     Graph *G = init(W.data(),W.rows(),W.cols());
-
+    cout << "|V|=" << G->vcount() << " |E|=" << G->ecount() << endl;
     MutableVertexPartition *partition=NULL;
     switch ( params.quality )
     {

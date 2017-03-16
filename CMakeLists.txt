@@ -19,6 +19,7 @@ else()
 endif()
 
 set(CMAKE_CXX_FLAGS "-Wall -Wno-deprecated-register -Wno-deprecated-declarations -std=c++11 ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
 # Specify if matlab support and python wrappers are to be compiled. Default OFF
 # MATLAB support needs MEX (Tested on Ubuntu 14.04, Matlab R2013a)
