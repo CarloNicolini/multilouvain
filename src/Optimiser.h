@@ -58,6 +58,40 @@ protected:
 private:
 };
 
+/**
+ * @brief The LouvainMethod enum
+ */
+enum QualityFunction
+{
+    QualitySurprise = 0,
+    QualitySignificance = 1,
+    QualityRBER = 2,
+    QualityRBConfiguration = 3,
+    QualityCPM = 4 ,
+    QualityModularity = 5,
+};
+
+/**
+ * @brief The LouvainParams struct
+ */
+struct LouvainParams
+{
+    QualityFunction quality;
+    int consider_comms; // Indicates how communities will be considered for improvement. Should be one of the parameters below
+    double eps;         // If the improvement falls below this threshold, stop iterating.
+    double delta;       // If the number of nodes that moves falls below this threshold, stop iterating.
+    size_t max_itr;     // Maximum number of iterations to perform.
+    int random_order;   // If True the nodes will be traversed in a random order when optimising a quality function.
+    double cpmgamma;    // resolution parameter in  CPM
+    int rand_seed;      // random seed for the louvain algorithm
+    int verbosity_level;
+    std::string filename;
+public:
+    LouvainParams() : quality(QualitySurprise), consider_comms(Optimiser::ALL_COMMS), eps(1E-4), delta(1E-2), max_itr(1E4), random_order(true), cpmgamma(0.5), rand_seed(-1)
+    {}
+};
+
+
 template <class T> T* Optimiser::find_partition(Graph* graph)
 {
     T* partition = new T(graph);

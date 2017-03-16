@@ -1,13 +1,46 @@
-#include <iostream>
-#include <fstream>
-#include <Eigen/Core>
-#include "GraphHelper.h"
-#include "Optimiser.h"
-#include "igraph_utils.h"
+/* This file is part of MULTILOUVAIN, a program to find network partitions
+*
+*  Copyright (C) 2017 Carlo Nicolini <carlo.nicolini@iit.it>
+*
+*  MULTILOUVAIN is free software; you can redistribute it and/or
+*  modify it under the terms of the GNU Lesser General Public
+*  License as published by the Free Software Foundation; either
+*  version 3 of the License, or (at your option) any later version.
+*
+*  Alternatively, you can redistribute it and/or
+*  modify it under the terms of the GNU General Public License as
+*  published by the Free Software Foundation; either version 2 of
+*  the License, or (at your option) any later version.
+*
+*  MULTILOUVAIN is distributed in the hope that it will be useful, but WITHOUT ANY
+*  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+*  FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License or the
+*  GNU General Public License for more details.
+*
+*  You should have received a copy of the GNU Lesser General Public
+*  License and a copy of the GNU General Public License along with
+*  MULTILOUVAIN. If not, see <http://www.gnu.org/licenses/>.
+*/
 
+#include <iostream>
+#include <string.h>
+#include <cmath>
+#include <sstream>
+#include <igraph.h>
+#include <sys/time.h>
+
+#include "GraphHelper.h"
 #include "Optimiser.h"
 #include "MutableVertexPartition.h"
 #include "SurpriseVertexPartition.h"
+#include "SignificanceVertexPartition.h"
+#include "RBConfigurationVertexPartition.h"
+#include "RBERVertexPartition.h"
+#include "CPMVertexPartition.h"
+#include "ModularityVertexPartition.h"
+#include "igraph_utils.h"
+
+#include <Eigen/Core>
 
 
 using namespace std;
@@ -15,120 +48,203 @@ using namespace std;
 void exit_with_help()
 {
     std::printf(
-                "Usage: run_multilouvain graph_file [options]\n"
-                "Version 0.1 19 January 2017\n"
-                "graph_file the file containing the graph. Accepted formats are pajek, graph_ml, adjacency matrix or"
-                "\nedges list (the ncol format), additionally with a third column with edge weights"
-                "options:\n"
+                "Usage: run_multilouvain [options] graph_file\n"
+                "Version 0.2 16 March 2017\n"
+                "graph_file the file containing the graph. Accepted formats are adjacency matrices in csv format or"
+                "\nedges list (the ncol format), additionally with a third column with edge weights\n"
+                "\n"
+                "Options:\n"
                 "-q [quality]\n"
                 "   0 Asymptotical Surprise\n"
-
-
-                "-c [consider_comms]:"
-                "   0 Agglomerative Optimizer\n"
-                "   1 Random\n"
-                "   2 Simulated Annealing\n"
-                "-V [report_level] ERROR=0, WARNING=1, INFO=2, DEBUG=3, DEBUG1=4, DEBUG2=5, DEBUG3=6, DEBUG4=7\n"
-                "-S [seed] specify the random seed, default time(0)\n"
+                "   1 Significance\n"
+                "   2 Reichardt-Bornholdt Erdos Renyi model\n"
+                "   3 Reichardt-Bornholdt Configuration Model\n"
+                "   4 Constant Potts Model\n"
+                "   5 Newman Modularity\n"
+                "-c [consider_comms]:\n"
+                "		1: ALL_COMMS. Looks for improvements in all communities. Slower but better results.\n"
+                "		2: ALL_NEIGH_COMMS Looks for improvements just in neighboring communities. Faster and still good results.\n"
+                "		3: RAND_COMMS Choose a random communitiy to look for improvements.\n"
+                "		4: RAND_NEIGH_COMMS Choose a random neighbor community. Fastest option but poor results.\n"
+                "-v [report_level] ERROR=0, WARNING=1, INFO=2, DEBUG=3, DEBUG1=4, DEBUG2=5, DEBUG3=6, DEBUG4=7\n"
+                "-s [seed] specify the random seed, default time(0)\n"
                 "-b [bool] wheter to start with initial random cluster or every node in its community\n"
-                "-r [repetitions], number of repetitions of PACO, default=1\n"
+                "-r [repetitions], number of , default=1\n"
                 "-p [print solution]\n"
                 "\n"
                 );
     exit(1);
 }
 
-enum error_type
+/**
+ * @brief parse_command_line
+ * @param argc
+ * @param argv
+ * @param input_file_name
+ */
+LouvainParams parse_command_line(int argc, char **argv)
 {
-    NO_ERROR = 0,
-    ERROR_TOO_MANY_OUTPUT_ARGS = 1,
-    ERROR_NOT_ENOUGH_ARGS = 2,
-    ERROR_ARG_VALUE = 3,
-    ERROR_ARG_TYPE = 4,
-    ERROR_MATRIX = 5,
-    ERROR_ARG_EMPTY=6,
-    ERROR_ARG_UNKNOWN=7
-};
-
-//static const char *error_strings[] =
-//{
-//    "",
-//    "Too many output arguments.",
-//    "Not enough input arguments.",
-//    "Non valid argument value.",
-//    "Non valid argument type.",
-//    "Non valid input adjacency matrix. PACO accepts symmetric real dense-type (n x n) matrices or sparse edges-list representation     [num_edges x 3] array of edges list with edge endpoints and weight.",
-//    "Expected some argument value but empty found.",
-//    "Unkwown argument."
-//};
-
-
-void igraph_matrix_view(igraph_matrix_t *A, igraph_real_t *data, int nrows, int ncols)
-{
-    A->ncol = nrows;
-    A->nrow = ncols;
-    A->data.stor_begin = data;
-    A->data.stor_end = data+ncols*nrows;
-    A->data.end = A->data.stor_end;
-}
-
-
-int main(int argc, char *argv[])
-{
-
-    vector<double> edges_weights(0);
-    std::vector<double> edges_list(0);
-    // The container structure igraph_t
-
-    std::vector<double> data = read_adj_matrix(std::string(argv[1]));
-
-    int N = sqrt(data.size());
-    Eigen::MatrixXd EW = Eigen::Map<Eigen::MatrixXd>(data.data(),N,N);
-    if (EW.trace() > 0)
+    LouvainParams params;
+    int i=1;
+    for(i=1; i<argc; i++)
     {
-        throw std::logic_error("Adjacency matrix has self loops, only simple graphs allowed.");
-    }
-    for (int i=0; i<N; ++i)
-    {
-        for (int j=i+1; j<N; j++)
+        if(argv[i][0] != '-')
+            break;
+        if(++i>=argc)
+            exit_with_help();
+        switch(argv[i-1][1])
         {
-            double w = std::max(EW.coeffRef(i,j),EW.coeffRef(j,i));
-            if (w>0)
+        case 'v':
+        case 'V':
+        {
+            params.verbosity_level = atoi(argv[i]);
+            if (params.verbosity_level>7)
+                params.verbosity_level=7;
+            //FILELog::ReportingLevel() =  static_cast<TLogLevel>(params.verbosity_level);
+            break;
+        }
+        case 's':
+        case 'S':
+        {
+            params.rand_seed = atoi(argv[i]);
+            break;
+        }
+        case 'q':
+        case 'Q':
+        {
+            if (atoi(argv[i])<QualitySurprise || atoi(argv[i])>QualityModularity)
             {
-                edges_list.push_back(i);
-                edges_list.push_back(j);
-                edges_weights.push_back(w);
+                exit_with_help();
             }
-            if (w<0)
+            else
             {
-                throw std::logic_error("Negative edge weight found. Only positive weights supported.");
+                params.quality = static_cast<QualityFunction>(atoi(argv[i]));
             }
+            break;
+        }
+        case 'r':
+        case 'R':
+        {
+            params.random_order = atoi(argv[i]);
+            break;
+        }
+        case 'c':
+        case 'C':
+        {
+            params.consider_comms = atoi(argv[i]);
+            if ( params.consider_comms <0 || params.consider_comms > 4)
+            {
+                exit_with_help();
+            }
+            break;
+        }
+        default:
+            exit_with_help();
         }
     }
 
-    if (edges_list.empty())
-        throw std::logic_error("Empty graph provided.");
+    // Determine filenames
+    if(i>=argc)
+        exit_with_help();
 
-    // Create the Graph object from the igraph data structure
-    // Fill the edges into the igraph IG
-    igraph_vector_t igedges_list;
-    igraph_vector_view(&igedges_list, edges_list.data(), edges_list.size());
-    igraph_t IG;
-    IGRAPH_TRY(igraph_create(&IG, &igedges_list, 0, 0));
+    char input[1024];
+    strcpy(input, argv[i]);
+    params.filename = std::string(input);
 
-    Graph *G = new Graph(&IG);
-    
-    Optimiser* opt = new Optimiser();
-    opt->consider_comms = Optimiser::ALL_NEIGH_COMMS;
-    opt->random_order = true;
-    MutableVertexPartition* partition = new SurpriseVertexPartition(G);
-    opt->optimize_partition(partition);
-    cerr << partition->quality() << endl;
-    cerr << partition->membership() << endl;
+    std::ifstream is(input);
+    if (!is.good())
+    {
+        std::cerr << std::string("File \"" + params.filename + "\" not found") << std::endl;
+        exit_with_help();
+    }
+    return params;
+}
+
+/**
+ * @brief main
+ * @param argc
+ * @param argv
+ * @return
+ */
+int main(int argc, char *argv[])
+{
+
+    LouvainParams params = parse_command_line(argc,argv);
+    // Set the random seed on the current time in microseconds, if not specified
+    if (params.rand_seed == -1)
+    {
+#ifdef WIN32
+        QueryPerformanceCounter(&endCount);
+        std::srand(startCount.QuadPart);
+#endif
+#ifdef __linux__
+        struct timeval start;
+        gettimeofday(&start, NULL);
+        std::srand(start.tv_usec);
+#endif
+#ifdef __apple__
+        struct timeval start;
+        gettimeofday(&start, NULL);
+        std::srand(start.tv_usec);
+#endif
+    }
+    else
+    {
+        srand(params.rand_seed); // initialize random seed from parameters
+    }
+
+    Eigen::MatrixXd W = read_adj_matrix<Eigen::MatrixXd>(params.filename,' ');
+
+    Graph *G = init(W.data(),W.rows(),W.cols());
+
+    MutableVertexPartition *partition=NULL;
+    switch ( params.quality )
+    {
+    case QualitySurprise:
+    {
+        partition = new SurpriseVertexPartition(G);
+        break;
+    }
+    case QualitySignificance:
+    {
+        partition = new SignificanceVertexPartition(G);
+        break;
+    }
+    case QualityRBER:
+    {
+        partition = new RBERVertexPartition(G);
+        break;
+    }
+    case QualityRBConfiguration:
+    {
+        partition = new RBConfigurationVertexPartition(G);
+        break;
+    }
+    case QualityCPM:
+    {
+        partition = new CPMVertexPartition(G, params.cpmgamma);
+        break;
+    }
+    case QualityModularity:
+    {
+        partition = new ModularityVertexPartition(G);
+        break;
+    }
+    default:
+        exit_with_help();
+    }
+
+    Optimiser *opt = new Optimiser;
+
+    double qual = opt->optimize_partition(partition);
+    cout << qual << endl;
+    cout << partition->membership() << endl;
+
     delete opt;
     delete partition;
+    G->dispose();
     delete G;
-    igraph_destroy(&IG);
+
     return 0;
 }
 

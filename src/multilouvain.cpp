@@ -53,18 +53,6 @@
 using namespace std;
 #define IS_ADJACENCY_MATRIX(P) (!mxIsComplex(P) && mxGetNumberOfDimensions(P) == 2 && !mxIsSparse(P) && (mxIsDouble(P) || mxIsUint8(P) || mxIsUint8(P) || mxIsLogical(P)))
 
-/**
- * @brief The LouvainMethod enum
- */
-enum LouvainMethod
-{
-    MethodSurprise = 0,
-    MethodSignificance = 1,
-    MethodRBER = 2,
-    MethodRBConfiguration = 3,
-    MethodCPM = 4 ,
-    MethodModularity = 5,
-};
 
 /**
  * @brief printUsage
@@ -72,7 +60,7 @@ enum LouvainMethod
 void printUsage()
 {
     mexPrintf("LOUVAIN Louvain Algorithm for community detection.\n");
-    mexPrintf("Version 0.1 19 January 2017\n");
+    mexPrintf("Version 0.2 16 March 2017\n");
     mexPrintf("[membership, qual] = multilouvain(W);\n");
     mexPrintf("Input:\n");
     mexPrintf("	W: an undirected weighted network with positive edge weights. Negative edge weights are not supported and an error is thrown. Remember to use real matrices as logical matrices throw error.\n");
@@ -139,20 +127,7 @@ static const char *error_strings[] =
     "Unkwown argument."
 };
 
-/**
- * @brief The LouvainParams struct
- */
-struct LouvainParams
-{
-    LouvainMethod quality;
-    int consider_comms;  // Indicates how communities will be considered for improvement. Should be one of the parameters below
-    double eps;          // If the improvement falls below this threshold, stop iterating.
-    double delta;        // If the number of nodes that moves falls below this threshold, stop iterating.
-    size_t max_itr;      // Maximum number of iterations to perform.
-    int random_order;    // If True the nodes will be traversed in a random order when optimising a quality function.
-    double cpmgamma; // resolution parameter in  CPM
-    int rand_seed; // random seed for the louvain algorithm
-};
+
 
 /**
  * @brief parse_args
@@ -227,8 +202,8 @@ error_type parse_args(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, co
             // Parse string value inputArgs[c]
             if ( strcasecmp(cpartype, "quality") == 0 )
             {
-                pars->quality = static_cast<LouvainMethod>(*mxGetPr(parval));
-                if (pars->quality < 0 || pars->quality > MethodModularity)
+                pars->quality = static_cast<QualityFunction>(*mxGetPr(parval));
+                if (pars->quality < 0 || pars->quality > QualityModularity)
                 {
                     *argposerr = argcount + 1;
                     return ERROR_ARG_VALUE;
@@ -297,7 +272,7 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
 {
     LouvainParams pars;
     // Set default values for parameters
-    pars.quality = MethodSurprise;
+    pars.quality = QualitySurprise;
     pars.consider_comms = Optimiser::ALL_COMMS;
     pars.eps = 1E-5;
     pars.cpmgamma = 0.5;
@@ -364,32 +339,32 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
         // Allocate partition method and optimization
         switch ( pars.quality )
         {
-            case MethodSurprise:
+            case QualitySurprise:
             {
                 partition = new SurpriseVertexPartition(G);
                 break;
             }
-            case MethodSignificance:
+            case QualitySignificance:
             {
                 partition = new SignificanceVertexPartition(G);
                 break;
             }
-            case MethodRBER:
+            case QualityRBER:
             {
                 partition = new RBERVertexPartition(G);
                 break;
             }
-            case MethodRBConfiguration:
+            case QualityRBConfiguration:
             {
                 partition = new RBConfigurationVertexPartition(G);
                 break;
             }
-            case MethodCPM:
+            case QualityCPM:
             {
                 partition = new CPMVertexPartition(G, pars.cpmgamma);
                 break;
             }
-            case MethodModularity:
+            case QualityModularity:
             {
                 partition = new ModularityVertexPartition(G);
                 break;
@@ -409,7 +384,7 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
         outputArgs[0] = mxCreateDoubleMatrix(1, (mwSize)G->vcount(), mxREAL);
         double *memb = mxGetPr(outputArgs[0]);
         // Copy the membership vector to outputArgs[0] which has been already preallocated
-        for (int i = 0; i < G->vcount() ; ++i)
+        for (size_t i = 0; i < G->vcount() ; ++i)
             memb[i] = static_cast<double>(partition->membership(i) + 1);
 
         // Copy the value of partition quality

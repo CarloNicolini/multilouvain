@@ -1,5 +1,6 @@
 #ifndef _IGRAPH_ADDITIONAL_UTILS_
 #define _IGRAPH_ADDITIONAL_UTILS_
+
 #include <igraph.h>
 #include <igraph_error.h>
 #include <stdexcept>
@@ -8,7 +9,7 @@
 #include <vector>
 #include <algorithm>
 #include <iterator>
-
+#include <Eigen/Core>
 
 #define IGRAPH_TRY(call){\
     int __result = call;\
@@ -28,7 +29,30 @@
 
 void igraph_matrix_view(igraph_matrix_t *A, igraph_real_t *data, int nrows, int ncols);
 
-std::vector<double> read_adj_matrix(const std::string &filename);
+//Eigen::MatrixXd read_adj_matrix(const std::string &filename);
+
+using namespace Eigen;
+template<typename M>
+M read_adj_matrix(const std::string & path, const char sep=' ')
+{
+    std::ifstream indata;
+    indata.open(path);
+    std::string line;
+    std::vector<double> values;
+    uint rows = 0;
+    while (std::getline(indata, line))
+    {
+        std::stringstream lineStream(line);
+        std::string cell;
+        while (std::getline(lineStream, cell, sep))
+        {
+            values.push_back(std::stod(cell));
+        }
+        ++rows;
+    }
+    return Eigen::Map<const Eigen::Matrix<typename M::Scalar, M::RowsAtCompileTime, M::ColsAtCompileTime, RowMajor>>(values.data(), rows, values.size()/rows);
+}
+
 
 // Vector pretty printer
 template<typename T>
