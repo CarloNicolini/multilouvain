@@ -34,7 +34,7 @@ MutableVertexPartition::MutableVertexPartition(Graph* graph,
     this->graph = graph;
     if (membership.size() != graph->vcount())
     {
-        throw Exception("Membership vector has incorrect size.");
+        throw std::logic_error("Membership vector has incorrect size.");
     }
     this->_membership = membership;
     this->init_admin();
@@ -291,7 +291,7 @@ void MutableVertexPartition::move_node(size_t v,size_t new_comm)
                 this->_total_weight_to_comm[new_comm] += w;
             }
             else
-                throw Exception("Incorrect mode for updating the admin.");
+                throw std::logic_error("Incorrect mode for updating the admin.");
             // Get internal weight (if it is an internal edge)
             double int_weight = w/(this->graph->is_directed() ? 1.0 : 2.0)/( u == v ? 2.0 : 1.0);
             // If it is an internal edge in the old community

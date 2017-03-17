@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
     {
         G  = new Graph(&graph,edge_weights);
     }
-    catch (Exception &e)
+    catch (std::exception &e)
     {
         throw e.what();
     }

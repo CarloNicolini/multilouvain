@@ -157,7 +157,7 @@ double Optimiser::optimize_partition(vector<MutableVertexPartition*> partitions,
     // Number of multiplex layers
     size_t nb_layers = partitions.size();
     if (nb_layers == 0)
-        throw Exception("No partitions provided.");
+        throw std::logic_error("No partitions provided.");
 
     // Get graphs for all layers
     vector<Graph*> graphs(nb_layers, NULL);
@@ -173,7 +173,7 @@ double Optimiser::optimize_partition(vector<MutableVertexPartition*> partitions,
     // same node (but then in a different layer).
     for (size_t layer = 0; layer < nb_layers; layer++)
         if (graphs[layer]->vcount() != n)
-            throw Exception("Number of nodes are not equal for all graphs.");
+            throw std::logic_error("Number of nodes are not equal for all graphs.");
 
     // Initialize the vector of the collapsed graphs for all layers
     vector<Graph*> collapsed_graphs(nb_layers, NULL);
@@ -417,7 +417,7 @@ double Optimiser::move_nodes(MutableVertexPartition* partition, int consider_com
                 if (fabs((q2 - q1) - max_improv) > 1e-6)
                 {
                     cerr << "ERROR: Inconsistency while moving nodes, improvement as measured by quality function did not equal the improvement measured by the diff_move function." << endl;
-                    //throw Exception("ERROR: Inconsistency while moving nodes, improvement as measured by quality function did not equal the improvement measured by the diff_move function.");
+                    //throw std::logic_error("ERROR: Inconsistency while moving nodes, improvement as measured by quality function did not equal the improvement measured by the diff_move function.");
                 }
                 cerr << "Move node " << v
                      << " from " << v_comm << " to " << max_comm
@@ -471,7 +471,7 @@ double Optimiser::move_nodes(vector<MutableVertexPartition*> partitions, vector<
     double improv = 2*this->eps*nb_layers;
     for (size_t layer = 0; layer < nb_layers; layer++)
         if (graphs[layer]->vcount() != n)
-            throw Exception("Number of nodes are not equal for all graphs.");
+            throw std::logic_error("Number of nodes are not equal for all graphs.");
     // Number of moved nodes during one loop
     size_t nb_moves = 2*n*nb_layers;
     // Initialize the degree vector
@@ -614,7 +614,7 @@ double Optimiser::move_nodes(vector<MutableVertexPartition*> partitions, vector<
                 if (fabs((q2 - q1) - max_improv) > 1e-6)
                 {
                     cerr << "ERROR: Inconsistency while moving nodes, improvement as measured by quality function did not equal the improvement measured by the diff_move function." << endl;
-                    //throw Exception("ERROR: Inconsistency while moving nodes, improvement as measured by quality function did not equal the improvement measured by the diff_move function.");
+                    //throw std::logic_error("ERROR: Inconsistency while moving nodes, improvement as measured by quality function did not equal the improvement measured by the diff_move function.");
                 }
                 cerr << "Move node " << v
                      << " from " << v_comm << " to " << max_comm

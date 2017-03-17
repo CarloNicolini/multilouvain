@@ -3,7 +3,7 @@
 
 #include <igraph.h>
 #include <vector>
-#include <exception>
+#include <stdexcept>
 
 #ifdef DEBUG
 #include <iostream>
@@ -31,23 +31,23 @@ template <class T> T sum(vector<T> vec)
     return sum_of_elems;
 };
 
-class Exception : std::exception
-{
-public:
-    Exception(const char* str)
-    {
-        this->str = str;
-    }
+//class std::logic_error : std::std::logic_error
+//{
+//public:
+//    std::logic_error(const char* str)
+//    {
+//        this->str = str;
+//    }
 
-    virtual const char* what() const throw()
-    {
-        return this->str;
-    }
+//    virtual const char* what() const throw()
+//    {
+//        return this->str;
+//    }
 
-private:
-    const char* str;
+//private:
+//    const char* str;
 
-};
+//};
 
 
 class Graph
@@ -126,7 +126,7 @@ public:
     {
 #ifdef DEBUG
         if (e > this->_edge_weights.size())
-            throw Exception("Edges outside of range of edge weights.");
+            throw std::logic_error("Edges outside of range of edge weights.");
 #endif
         return this->_edge_weights[e];
     }
@@ -152,7 +152,7 @@ public:
         else if (mode == IGRAPH_ALL)
             return this->_degree_all[v];
         else
-            throw Exception("Incorrect mode specified.");
+            throw std::logic_error("Incorrect mode specified.");
     }
 
     inline double strength(size_t v, igraph_neimode_t mode)
@@ -162,7 +162,7 @@ public:
         else if (mode == IGRAPH_OUT)
             return this->_strength_out[v];
         else
-            throw Exception("Incorrect mode specified.");
+            throw std::logic_error("Incorrect mode specified.");
     }
 
     inline void dispose()

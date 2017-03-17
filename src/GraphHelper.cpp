@@ -37,16 +37,16 @@ Graph::Graph(igraph_t* graph, const vector<double> &edge_weights, const vector<s
     this->_remove_graph = false;
 
     if (edge_weights.size() != this->ecount())
-        throw Exception("Edge weights vector inconsistent length with the edge count of the graph.");
+        throw std::logic_error("Edge weights vector inconsistent length with the edge count of the graph.");
     this->_edge_weights = edge_weights;
     this->_is_weighted = true;
 
     if (node_sizes.size() != this->vcount())
-        throw Exception("Node size vector inconsistent length with the vertex count of the graph.");
+        throw std::logic_error("Node size vector inconsistent length with the vertex count of the graph.");
     this->_node_sizes = node_sizes;
 
     if (node_self_weights.size() != this->vcount())
-        throw Exception("Node self weights vector inconsistent length with the vertex count of the graph.");
+        throw std::logic_error("Node self weights vector inconsistent length with the vertex count of the graph.");
     this->_node_self_weights = node_self_weights;
 
     this->_correct_self_loops = correct_self_loops;
@@ -59,12 +59,12 @@ Graph::Graph(igraph_t* graph, const vector<double> &edge_weights, const vector<s
     this->_remove_graph = false;
 
     if (edge_weights.size() != this->ecount())
-        throw Exception("Edge weights vector inconsistent length with the edge count of the graph.");
+        throw std::logic_error("Edge weights vector inconsistent length with the edge count of the graph.");
     this->_edge_weights = edge_weights;
     this->_is_weighted = true;
 
     if (node_sizes.size() != this->vcount())
-        throw Exception("Node size vector inconsistent length with the vertex count of the graph.");
+        throw std::logic_error("Node size vector inconsistent length with the vertex count of the graph.");
     this->_node_sizes = node_sizes;
 
     this->_node_self_weights = node_self_weights;
@@ -77,12 +77,12 @@ Graph::Graph(igraph_t* graph, const vector<double> &edge_weights, const vector<s
     this->_remove_graph = false;
 
     if (edge_weights.size() != this->ecount())
-        throw Exception("Edge weights vector inconsistent length with the edge count of the graph.");
+        throw std::logic_error("Edge weights vector inconsistent length with the edge count of the graph.");
     this->_edge_weights = edge_weights;
     this->_is_weighted = true;
 
     if (node_sizes.size() != this->vcount())
-        throw Exception("Node size vector inconsistent length with the vertex count of the graph.");
+        throw std::logic_error("Node size vector inconsistent length with the vertex count of the graph.");
     this->_node_sizes = node_sizes;
 
     this->_correct_self_loops = correct_self_loops;
@@ -95,12 +95,12 @@ Graph::Graph(igraph_t* graph, const vector<double> &edge_weights, const vector<s
     this->_graph = graph;
     this->_remove_graph = false;
     if (edge_weights.size() != this->ecount())
-        throw Exception("Edge weights vector inconsistent length with the edge count of the graph.");
+        throw std::logic_error("Edge weights vector inconsistent length with the edge count of the graph.");
     this->_edge_weights = edge_weights;
     this->_is_weighted = true;
 
     if (node_sizes.size() != this->vcount())
-        throw Exception("Node size vector inconsistent length with the vertex count of the graph.");
+        throw std::logic_error("Node size vector inconsistent length with the vertex count of the graph.");
     this->_node_sizes = node_sizes;
 
     this->init_admin();
@@ -113,7 +113,7 @@ Graph::Graph(igraph_t* graph, const vector<double> &edge_weights, int correct_se
     this->_remove_graph = false;
     this->_correct_self_loops = correct_self_loops;
     if (edge_weights.size() != this->ecount())
-        throw Exception("Edge weights vector inconsistent length with the edge count of the graph.");
+        throw std::logic_error("Edge weights vector inconsistent length with the edge count of the graph.");
     this->_edge_weights = edge_weights;
     this->_is_weighted = true;
     this->set_default_node_size();
@@ -126,7 +126,7 @@ Graph::Graph(igraph_t* graph, const vector<double> &edge_weights)
     this->_graph = graph;
     this->_remove_graph = false;
     if (edge_weights.size() != this->ecount())
-        throw Exception("Edge weights vector inconsistent length with the edge count of the graph.");
+        throw std::logic_error("Edge weights vector inconsistent length with the edge count of the graph.");
     this->_edge_weights = edge_weights;
     this->_is_weighted = true;
     this->set_default_node_size();
@@ -431,7 +431,7 @@ size_t Graph::get_random_neighbour(size_t v, igraph_neimode_t mode)
     size_t rand_neigh = -1;
 
     if (this->degree(v, mode) <= 0)
-        throw Exception("Cannot select a random neighbour for an isolated node.");
+        throw std::logic_error("Cannot select a random neighbour for an isolated node.");
 
     if (igraph_is_directed(this->_graph) && mode != IGRAPH_ALL)
     {
@@ -567,7 +567,7 @@ Graph* Graph::collapse_graph(MutableVertexPartition* partition)
             collapsed_weights[e_idx] = w;
             total_collapsed_weight += w;
             if (e_idx >= m_collapsed)
-                throw Exception("Maximum number of possible edges exceeded.");
+                throw std::logic_error("Maximum number of possible edges exceeded.");
             // next edge
             e_idx += 1;
         }
@@ -577,7 +577,7 @@ Graph* Graph::collapse_graph(MutableVertexPartition* partition)
 #ifdef AVOID_CHECK_COLLAPSED_WEIGHT
     double const eps = 1e-6;
     if (fabs(total_collapsed_weight - this->total_weight()) > eps)
-        throw Exception("Total collapsed weight is not equal to original weight.");
+        throw std::logic_error("Total collapsed weight is not equal to original weight.");
 #endif
 
     // Create graph based on edges
@@ -586,7 +586,7 @@ Graph* Graph::collapse_graph(MutableVertexPartition* partition)
     igraph_vector_destroy(&edges);
 
     if ((size_t) igraph_vcount(graph) != partition->nb_communities())
-        throw Exception("Something went wrong with collapsing the graph.");
+        throw std::logic_error("Something went wrong with collapsing the graph.");
 
     // Calculate new node sizes
     vector<size_t> csizes(n_collapsed, 0);
@@ -632,7 +632,7 @@ Graph * init(double *adjmat, int nrows, int ncols) // adjmat can be both the adj
 
         if (!isSymmetric && !isUpperTriangular && !isLowerTriangular)
         {
-            throw Exception("Matrix is not symmetric, nor triangular lower or upper triangular. Check diagonal and non symmetric values.");
+            throw std::logic_error("Matrix is not symmetric, nor triangular lower or upper triangular. Check diagonal and non symmetric values.");
         }
         for (int l = 0; l < nrows; ++l)
         {
@@ -660,7 +660,7 @@ Graph * init(double *adjmat, int nrows, int ncols) // adjmat can be both the adj
     {
         if (EW.trace() > 0)
         {
-            throw Exception("Adjacency matrix has self loops, only simple graphs allowed.");
+            throw std::logic_error("Adjacency matrix has self loops, only simple graphs allowed.");
         }
         for (int i = 0; i < ncols; ++i)
         {
@@ -678,14 +678,14 @@ Graph * init(double *adjmat, int nrows, int ncols) // adjmat can be both the adj
                 }
                 if (w < 0)
                 {
-                    throw Exception("Negative edge weight found. Only positive weights supported.");
+                    throw std::logic_error("Negative edge weight found. Only positive weights supported.");
                 }
             }
         }
     }
 
     if (edges_list.empty())
-        throw Exception("Empty graph provided.");
+        throw std::logic_error("Empty graph provided.");
 
     // Create the Graph object from the igraph data structure
     // Fill the edges into the igraph IG
