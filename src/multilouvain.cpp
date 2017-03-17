@@ -339,36 +339,36 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
         // Allocate partition method and optimization
         switch ( pars.quality )
         {
-            case QualitySurprise:
-            {
-                partition = new SurpriseVertexPartition(G);
-                break;
-            }
-            case QualitySignificance:
-            {
-                partition = new SignificanceVertexPartition(G);
-                break;
-            }
-            case QualityRBER:
-            {
-                partition = new RBERVertexPartition(G);
-                break;
-            }
-            case QualityRBConfiguration:
-            {
-                partition = new RBConfigurationVertexPartition(G);
-                break;
-            }
-            case QualityCPM:
-            {
-                partition = new CPMVertexPartition(G, pars.cpmgamma);
-                break;
-            }
-            case QualityModularity:
-            {
-                partition = new ModularityVertexPartition(G);
-                break;
-            }
+        case QualitySurprise:
+        {
+            partition = new SurpriseVertexPartition(G);
+            break;
+        }
+        case QualitySignificance:
+        {
+            partition = new SignificanceVertexPartition(G);
+            break;
+        }
+        case QualityRBER:
+        {
+            partition = new RBERVertexPartition(G);
+            break;
+        }
+        case QualityRBConfiguration:
+        {
+            partition = new RBConfigurationVertexPartition(G);
+            break;
+        }
+        case QualityCPM:
+        {
+            partition = new CPMVertexPartition(G, pars.cpmgamma);
+            break;
+        }
+        case QualityModularity:
+        {
+            partition = new ModularityVertexPartition(G);
+            break;
+        }
         }
 
         // Set optimization things
