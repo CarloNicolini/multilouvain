@@ -249,6 +249,7 @@ int main(int argc, char *argv[])
     catch (std::exception &e)
     {
         cerr << e.what() << endl;
+        exit_with_help();
     }
 
     return 0;
