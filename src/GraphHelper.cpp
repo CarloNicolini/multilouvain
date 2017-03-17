@@ -1,5 +1,6 @@
 #include <Eigen/Core>
 #include "GraphHelper.h"
+#include <iostream>
 
 #ifdef MATLAB_SUPPORT
 #include "mexInterrupt.h"
@@ -9,6 +10,8 @@
 using std::cerr;
 using std::endl;
 #endif
+
+using namespace std;
 
 vector<size_t> range(size_t n)
 {
@@ -497,8 +500,7 @@ size_t Graph::get_random_neighbour(size_t v, igraph_neimode_t mode)
     return rand_neigh;
 }
 
-#include <iostream>
-using namespace std;
+
 /****************************************************************************
   Creates a graph with communities as node and links as weights between
   communities.
@@ -574,7 +576,7 @@ Graph* Graph::collapse_graph(MutableVertexPartition* partition)
     }
 
 #define AVOID_CHECK_COLLAPSED_WEIGHT
-#ifdef AVOID_CHECK_COLLAPSED_WEIGHT
+#ifndef AVOID_CHECK_COLLAPSED_WEIGHT
     double const eps = 1e-6;
     if (fabs(total_collapsed_weight - this->total_weight()) > eps)
         throw std::logic_error("Total collapsed weight is not equal to original weight.");
