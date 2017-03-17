@@ -168,82 +168,88 @@ LouvainParams parse_command_line(int argc, char **argv)
  */
 int main(int argc, char *argv[])
 {
-
-    LouvainParams params = parse_command_line(argc,argv);
-    // Set the random seed on the current time in microseconds, if not specified
-    if (params.rand_seed == -1)
+    try
     {
+        LouvainParams params = parse_command_line(argc,argv);
+        // Set the random seed on the current time in microseconds, if not specified
+        if (params.rand_seed == -1)
+        {
 #ifdef WIN32
-        QueryPerformanceCounter(&endCount);
-        std::srand(startCount.QuadPart);
+            QueryPerformanceCounter(&endCount);
+            std::srand(startCount.QuadPart);
 #endif
 #ifdef __linux__
-        struct timeval start;
-        gettimeofday(&start, NULL);
-        std::srand(start.tv_usec);
+            struct timeval start;
+            gettimeofday(&start, NULL);
+            std::srand(start.tv_usec);
 #endif
 #ifdef __apple__
-        struct timeval start;
-        gettimeofday(&start, NULL);
-        std::srand(start.tv_usec);
+            struct timeval start;
+            gettimeofday(&start, NULL);
+            std::srand(start.tv_usec);
 #endif
-    }
-    else
-    {
-        srand(params.rand_seed); // initialize random seed from parameters
-    }
+        }
+        else
+        {
+            srand(params.rand_seed); // initialize random seed from parameters
+        }
 
-    Eigen::MatrixXd W = read_adj_matrix<Eigen::MatrixXd>(params.filename,' ');
+        Eigen::MatrixXd W = read_adj_matrix<Eigen::MatrixXd>(params.filename,' ');
 
-    Graph *G = init(W.data(),W.rows(),W.cols());
-    cout << "|V|=" << G->vcount() << " |E|=" << G->ecount() << endl;
-    MutableVertexPartition *partition=NULL;
-    switch ( params.quality )
-    {
-    case QualitySurprise:
-    {
-        partition = new SurpriseVertexPartition(G);
-        break;
-    }
-    case QualitySignificance:
-    {
-        partition = new SignificanceVertexPartition(G);
-        break;
-    }
-    case QualityRBER:
-    {
-        partition = new RBERVertexPartition(G);
-        break;
-    }
-    case QualityRBConfiguration:
-    {
-        partition = new RBConfigurationVertexPartition(G);
-        break;
-    }
-    case QualityCPM:
-    {
-        partition = new CPMVertexPartition(G, params.cpmgamma);
-        break;
-    }
-    case QualityModularity:
-    {
-        partition = new ModularityVertexPartition(G);
-        break;
-    }
-    default:
-        exit_with_help();
-    }
+        Graph *G = init(W.data(),W.rows(),W.cols());
+        cout << "|V|=" << G->vcount() << " |E|=" << G->ecount() << endl;
+        MutableVertexPartition *partition=NULL;
+        switch ( params.quality )
+        {
+        case QualitySurprise:
+        {
+            partition = new SurpriseVertexPartition(G);
+            break;
+        }
+        case QualitySignificance:
+        {
+            partition = new SignificanceVertexPartition(G);
+            break;
+        }
+        case QualityRBER:
+        {
+            partition = new RBERVertexPartition(G);
+            break;
+        }
+        case QualityRBConfiguration:
+        {
+            partition = new RBConfigurationVertexPartition(G);
+            break;
+        }
+        case QualityCPM:
+        {
+            partition = new CPMVertexPartition(G, params.cpmgamma);
+            break;
+        }
+        case QualityModularity:
+        {
+            partition = new ModularityVertexPartition(G);
+            break;
+        }
+        default:
+            exit_with_help();
+        }
 
-    Optimiser *opt = new Optimiser;
+        Optimiser *opt = new Optimiser;
 
-    double qual = opt->optimize_partition(partition);
-    cout << qual << endl;
-    cout << partition->membership() << endl;
+        double qual = opt->optimize_partition(partition);
+        cout << qual << endl;
+        cout << partition->membership() << endl;
 
-    delete opt;
-    delete partition;
-    G->dispose();
-    delete G;
+        delete opt;
+        delete partition;
+        G->dispose();
+        delete G;
+    }
+    catch (std::exception &e)
+    {
+        cerr << e.what() << endl;
+    }
 
     return 0;
 }
