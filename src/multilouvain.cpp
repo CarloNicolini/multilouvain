@@ -93,10 +93,6 @@ void printUsage()
     mexPrintf("		val: whether to consider nodes in random order or not. Default true.\n");
     mexPrintf("[m, qual] = multilouvain(W,'seed',val);\n");
     mexPrintf("		val: to provide a specific random seed to the algorithm, in order to have reproducible results.\n");
-    mexPrintf("\n\n");
-    mexPrintf("Example:\n");
-    mexPrintf(">> A=rand(100,100); A=(A+A')/2; A=A.*(A>0.5);\n");
-    mexPrintf(">> [memb, qual] = multilouvain(A,'method',2,'consider_comms',2);\n");
 }
 
 /**
