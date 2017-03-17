@@ -60,7 +60,7 @@ using namespace std;
 void printUsage()
 {
     mexPrintf("LOUVAIN Louvain Algorithm for community detection.\n");
-    mexPrintf("Version 0.2.1 17 March 2017\n");
+    mexPrintf("Version 0.2.2 17 March 2017\n");
     mexPrintf("[membership, qual] = multilouvain(W);\n");
     mexPrintf("Input:\n");
     mexPrintf("	W: an undirected weighted network with positive edge weights. Negative edge weights are not supported and an error is thrown. Remember to use real matrices as logical matrices throw error.\n");
