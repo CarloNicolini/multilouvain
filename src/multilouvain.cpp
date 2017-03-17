@@ -326,6 +326,7 @@ void mexFunction(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, const m
     try
     {
         Graph *G = init(W, nrows, ncols);
+        cerr << G->vcount() << " " << G->ecount() << endl;
         // Now that the Graph has been built it's time to run the solver.
         // Create the partition function
         MutableVertexPartition *partition;
