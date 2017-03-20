@@ -11,6 +11,8 @@
 #include <iterator>
 #include <Eigen/Core>
 
+using namespace Eigen;
+
 #define IGRAPH_TRY(call){\
     int __result = call;\
     std::stringstream ss; ss << __result; \
@@ -29,9 +31,6 @@
 
 void igraph_matrix_view(igraph_matrix_t *A, igraph_real_t *data, int nrows, int ncols);
 
-//Eigen::MatrixXd read_adj_matrix(const std::string &filename);
-
-using namespace Eigen;
 template<typename M>
 M read_adj_matrix(const std::string & path, const char sep=' ')
 {
@@ -62,6 +61,29 @@ std::ostream & operator<<(std::ostream & os, std::vector<T> vec)
     std::copy(vec.begin(), vec.end(), std::ostream_iterator<T>(os, " "));
     os<<"]";
     return os;
+}
+
+
+namespace Eigen{
+template<class Matrix>
+void write_binary(const char* filename, const Matrix& matrix){
+    std::ofstream out(filename,std::ios::out | std::ios::binary | std::ios::trunc);
+    typename Matrix::Index rows=matrix.rows(), cols=matrix.cols();
+    out.write((char*) (&rows), sizeof(typename Matrix::Index));
+    out.write((char*) (&cols), sizeof(typename Matrix::Index));
+    out.write((char*) matrix.data(), rows*cols*sizeof(typename Matrix::Scalar) );
+    out.close();
+}
+template<class Matrix>
+void read_binary(const char* filename, Matrix& matrix){
+    std::ifstream in(filename,std::ios::in | std::ios::binary);
+    typename Matrix::Index rows=0, cols=0;
+    in.read((char*) (&rows),sizeof(typename Matrix::Index));
+    in.read((char*) (&cols),sizeof(typename Matrix::Index));
+    matrix.resize(rows, cols);
+    in.read( (char *) matrix.data() , rows*cols*sizeof(typename Matrix::Scalar) );
+    in.close();
+}
 }
 
 #endif

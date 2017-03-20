@@ -39,6 +39,7 @@
 #include "CPMVertexPartition.h"
 #include "ModularityVertexPartition.h"
 #include "igraph_utils.h"
+#include "SurpriseVertexPartition.h"
 
 #include <Eigen/Core>
 
@@ -234,17 +235,21 @@ int main(int argc, char *argv[])
         default:
             exit_with_help();
         }
+    srand(time(0));
+    std::vector<double> edges_weights;
+    std::vector<double> edges_list;
+    // The container structure igraph_t
 
-        Optimiser *opt = new Optimiser;
+    Optimiser *opt = new Optimiser;
 
-        double qual = opt->optimize_partition(partition);
-        cout << qual << endl;
-        cout << partition->membership() << endl;
+    double qual = opt->optimize_partition(partition);
+    cout << qual << endl;
+    cout << partition->membership() << endl;
 
-        delete opt;
-        delete partition;
-        G->dispose();
-        delete G;
+    delete opt;
+    delete partition;
+    G->dispose();
+    delete G;
     }
     catch (std::exception &e)
     {
