@@ -87,7 +87,7 @@ struct LouvainParams
     int verbosity_level;
     std::string filename;
 public:
-    LouvainParams() : quality(QualitySurprise), consider_comms(Optimiser::ALL_COMMS), eps(1E-4), delta(1E-2), max_itr(1E4), random_order(true), cpmgamma(0.5), rand_seed(-1)
+    LouvainParams() : quality(QualitySurprise), consider_comms(Optimiser::ALL_COMMS), eps(1E-4), delta(1E-2), max_itr(1E4), random_order(true), cpmgamma(0.5), rand_seed(-1), verbosity_level(1)
     {}
 };
 

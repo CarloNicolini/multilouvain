@@ -50,7 +50,7 @@ void exit_with_help()
 {
     std::printf(
                 "Usage: run_multilouvain [options] graph_file\n"
-                "Version 0.2 16 March 2017\n"
+                "Version 0.3 20 March 2017\n"
                 "graph_file the file containing the graph. Accepted formats are adjacency matrices in csv format or"
                 "\nedges list (the ncol format), additionally with a third column with edge weights\n"
                 "\n"
@@ -101,7 +101,6 @@ LouvainParams parse_command_line(int argc, char **argv)
             params.verbosity_level = atoi(argv[i]);
             if (params.verbosity_level>7)
                 params.verbosity_level=7;
-            //FILELog::ReportingLevel() =  static_cast<TLogLevel>(params.verbosity_level);
             break;
         }
         case 's':
@@ -198,7 +197,8 @@ int main(int argc, char *argv[])
         Eigen::MatrixXd W = read_adj_matrix<Eigen::MatrixXd>(params.filename,' ');
 
         Graph *G = init(W.data(),W.rows(),W.cols());
-        cout << "|V|=" << G->vcount() << " |E|=" << G->ecount() << endl;
+        if (params.verbosity_level > 0)
+            cout << "|V|=" << G->vcount() << " |E|=" << G->ecount() << endl;
         MutableVertexPartition *partition=NULL;
         switch ( params.quality )
         {
@@ -235,21 +235,17 @@ int main(int argc, char *argv[])
         default:
             exit_with_help();
         }
-    srand(time(0));
-    std::vector<double> edges_weights;
-    std::vector<double> edges_list;
-    // The container structure igraph_t
 
-    Optimiser *opt = new Optimiser;
+        Optimiser *opt = new Optimiser;
 
-    double qual = opt->optimize_partition(partition);
-    cout << qual << endl;
-    cout << partition->membership() << endl;
+        double qual = opt->optimize_partition(partition);
+        cout << qual << endl;
+        cout << partition->membership() << endl;
 
-    delete opt;
-    delete partition;
-    G->dispose();
-    delete G;
+        delete opt;
+        delete partition;
+        G->dispose();
+        delete G;
     }
     catch (std::exception &e)
     {
