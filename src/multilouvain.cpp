@@ -72,19 +72,20 @@ void printUsage()
     mexPrintf("Options:\n");
     mexPrintf("multilouvain accepts additional arguments to control the optimization process\n");
     mexPrintf("[m, qual] = multilouvain(W,'quality',val);\n");
-    mexPrintf("	val is one of the following integers: {0,1,2,3,4,5}:\n");
+    mexPrintf("	val is one of the following integers: {0,1,2,3,4,5,6}:\n");
     mexPrintf("		0: Asymptotical Surprise\n");
     mexPrintf("		1: Significance\n");
     mexPrintf("		2: Reichardt-Bornholdt with Erdos-Renyi null model\n");
     mexPrintf("		3: Reichardt-Bornholdt with configuration model null model\n");
     mexPrintf("		4: Constant Potts Model (gamma=0.5), to specify as further argument.\n");
     mexPrintf("		5: Newman's modularity\n");
+    mexPrintf("		6: Degree Corrected Surprise\n");
     mexPrintf("[m, qual] = multilouvain(W,'consider_comms',val);\n");
     mexPrintf("	consider_comms is one of the following integers: {1,2,3,4}:\n");
     mexPrintf("		1: ALL_COMMS. Looks for improvements in all communities. Slower but better results.\n");
     mexPrintf("		2: ALL_NEIGH_COMMS Looks for improvements just in neighboring communities. Faster and still good results.\n");
     mexPrintf("		2: RAND_COMMS Choose a random communitiy to look for improvements.\n");
-    mexPrintf("		3: RAND_NEIGH_COMMS Choose a random neighbor community. Fastest option but poor results.\n");
+    mexPrintf("		4: RAND_NEIGH_COMMS Choose a random neighbor community. Fastest option but poor results.\n");
     mexPrintf("[m, qual] = multilouvain(W,'cpm_gamma',val);\n");
     mexPrintf("		val: is the resolution parameter for CPM method.\n");
     mexPrintf("[m, qual] = multilouvain(W,'max_itr',val);\n");
@@ -199,7 +200,7 @@ error_type parse_args(int nOutputArgs, mxArray *outputArgs[], int nInputArgs, co
             if ( strcasecmp(cpartype, "quality") == 0 )
             {
                 pars->quality = static_cast<QualityFunction>(*mxGetPr(parval));
-                if (pars->quality < 0 || pars->quality > QualityModularity)
+                if (pars->quality < 0 || pars->quality > QualityDCSurprise )
                 {
                     *argposerr = argcount + 1;
                     return ERROR_ARG_VALUE;
