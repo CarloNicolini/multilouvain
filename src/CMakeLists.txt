@@ -12,6 +12,7 @@ RBConfigurationVertexPartition.cpp
 RBERVertexPartition.cpp
 SignificanceVertexPartition.cpp
 SurpriseVertexPartition.cpp
+DCSurpriseVertexPartition.cpp
 igraph_utils.cpp
 )
 
@@ -26,6 +27,7 @@ RBConfigurationVertexPartition.h
 RBERVertexPartition.h
 SignificanceVertexPartition.h
 SurpriseVertexPartition.h
+DCSurpriseVertexPartition.h
 igraph_utils.h
 )
 

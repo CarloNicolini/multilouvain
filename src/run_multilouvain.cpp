@@ -38,6 +38,7 @@
 #include "RBERVertexPartition.h"
 #include "CPMVertexPartition.h"
 #include "ModularityVertexPartition.h"
+#include "DCSurpriseVertexPartition.h"
 #include "igraph_utils.h"
 #include "SurpriseVertexPartition.h"
 
@@ -62,6 +63,7 @@ void exit_with_help()
                 "   3 Reichardt-Bornholdt Configuration Model\n"
                 "   4 Constant Potts Model\n"
                 "   5 Newman Modularity\n"
+                "   6 Degree Corrected Surprise\n"
                 "-c [consider_comms]:\n"
                 "		1: ALL_COMMS. Looks for improvements in all communities. Slower but better results.\n"
                 "		2: ALL_NEIGH_COMMS Looks for improvements just in neighboring communities. Faster and still good results.\n"
@@ -231,6 +233,10 @@ int main(int argc, char *argv[])
         {
             partition = new ModularityVertexPartition(G);
             break;
+        }
+        case QualityDCSurprise:
+        {
+            partition = new DCSurpriseVertexPartition(G);
         }
         default:
             exit_with_help();

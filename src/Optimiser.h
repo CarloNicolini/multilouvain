@@ -69,6 +69,7 @@ enum QualityFunction
     QualityRBConfiguration = 3,
     QualityCPM = 4 ,
     QualityModularity = 5,
+    QualityDCSurprise = 6
 };
 
 /**
