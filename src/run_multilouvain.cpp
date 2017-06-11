@@ -114,7 +114,7 @@ LouvainParams parse_command_line(int argc, char **argv)
         case 'q':
         case 'Q':
         {
-            if (atoi(argv[i])<QualitySurprise || atoi(argv[i])>QualityModularity)
+            if (atoi(argv[i])<QualitySurprise || atoi(argv[i])>QualityDCSurprise)
             {
                 exit_with_help();
             }
@@ -237,6 +237,7 @@ int main(int argc, char *argv[])
         case QualityDCSurprise:
         {
             partition = new DCSurpriseVertexPartition(G);
+            break;
         }
         default:
             exit_with_help();
